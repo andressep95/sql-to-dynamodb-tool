@@ -1,0 +1,111 @@
+########################################
+# macOS
+########################################
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+########################################
+# IDEs / Editors
+########################################
+.vscode/
+.idea/
+*.swp
+*.swo
+*.log
+
+########################################
+# Terraform
+########################################
+# State
+**/.terraform/
+**/.terraform.lock.hcl
+**/*.tfstate
+**/*.tfstate.*
+**/crash.log
+
+# Terraform plan files
+**/*.tfplan
+
+# Override files
+**/*_override.tf
+**/*_override.tf.json
+
+# Variable files (sensitive)
+**/*.tfvars
+**/*.tfvars.json
+
+########################################
+# Terraform Backend (local)
+########################################
+infra/terraform/backend/.terraform/
+infra/terraform/backend/*.tfstate*
+infra/terraform/backend/*.tfvars
+
+########################################
+# AWS / LocalStack
+########################################
+.aws/
+localstack/
+docker/localstack/
+*.pem
+*.key
+
+########################################
+# Go (Lambda)
+########################################
+# Binaries
+lambda/**/bootstrap
+lambda/**/main
+lambda/**/dist/
+lambda/**/bin/
+
+# Go build cache
+**/go.work
+**/go.sum
+**/vendor/
+**/coverage.out
+
+########################################
+# Frontend (web)
+########################################
+web/node_modules/
+web/dist/
+web/build/
+web/.env
+web/.env.*
+
+########################################
+# Environment / Secrets
+########################################
+.env
+.env.*
+*.secret
+*.secrets
+*.credentials
+
+########################################
+# Logs & Temp
+########################################
+logs/
+tmp/
+temp/
+*.tmp
+
+########################################
+# OS / Shell
+########################################
+.zsh_history
+.bash_history
+.bashrc
+.zshrc
+
+########################################
+# Misc
+########################################
+*.retry
+*.bak
+*.old
