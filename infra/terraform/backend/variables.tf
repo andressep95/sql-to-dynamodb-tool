@@ -1,0 +1,17 @@
+variable "project" {
+  description = "Project name"
+  type        = string
+  default     = "sql-to-nosql"
+}
+
+variable "aws_region" {
+  description = "AWS region"
+  type        = string
+  default     = "us-east-1"
+}
+
+variable "aws_profile" {
+  description = "AWS CLI profile"
+  type        = string
+  default     = null
+}

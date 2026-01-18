@@ -29,12 +29,17 @@ output "memory_size" {
 
 output "environment_variables" {
   description = "Environment variables of the Lambda function"
-  value       = aws_lambda_function.this.environment[0].variables
+  value = (
+    length(aws_lambda_function.this.environment) > 0
+    ? aws_lambda_function.this.environment[0].variables
+    : {}
+  )
 }
+
 
 output "architecture" {
   description = "Architecture of the Lambda function"
-  value       = aws_lambda_function.this.architecture
+  value       = aws_lambda_function.this.architectures
 }
 
 output "qualified_arn" {
