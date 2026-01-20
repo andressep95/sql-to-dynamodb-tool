@@ -32,3 +32,14 @@ output "environment_variables" {
   description = "Environment variables of the Lambda function"
   value       = module.lambda_components.environment_variables
 }
+
+# API Gateway outputs
+output "api_gateway_id" {
+  description = "ID of the API Gateway"
+  value       = module.shared.api_gateway_id
+}
+
+output "api_gateway_endpoint" {
+  description = "Invoke URL of the API Gateway"
+  value       = module.shared.api_gateway_endpoint
+}
