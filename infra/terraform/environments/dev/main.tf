@@ -95,3 +95,23 @@ module "lambda_components" {
   environment = var.environment
   common_tags = local.common_tags
 }
+
+# ============================================
+# Shared Resources (API Gateway)
+# ============================================
+
+module "shared" {
+  source = "./shared"
+
+  environment = var.environment
+  aws_region  = var.aws_region
+  common_tags = local.common_tags
+
+  # Lambda integration from components
+  lambda_function_name = module.lambda_components.function_name
+  lambda_function_arn  = module.lambda_components.function_arn
+
+  # API Gateway config
+  api_gateway_name = "${local.project_name}-api"
+  stage_name       = var.environment
+}
