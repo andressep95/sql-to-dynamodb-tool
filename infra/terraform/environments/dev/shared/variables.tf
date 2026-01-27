@@ -33,7 +33,7 @@ variable "lambda_function_arn" {
 variable "api_gateway_name" {
   description = "Name for the API Gateway"
   type        = string
-  default     = "healthcheck-api"
+  default     = "process_handler-api"
 }
 
 variable "stage_name" {
