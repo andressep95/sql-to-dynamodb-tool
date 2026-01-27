@@ -1,264 +1,320 @@
-# Implementation Plan: SQL to DynamoDB Converter
+# Plan de Implementación: Conversor SQL a DynamoDB
 
-## Overview
+## Resumen
 
-This implementation plan converts the serverless SQL to DynamoDB converter design into discrete coding tasks. The approach follows a serverless-first architecture using Go Lambda functions, Amazon Bedrock for AI-powered conversion, and comprehensive security measures. Each task builds incrementally toward a complete, production-ready system.
+Este plan de implementación convierte el diseño del conversor serverless SQL a DynamoDB en tareas de codificación discretas. El enfoque sigue una arquitectura serverless-first usando funciones Lambda en Go, Amazon Bedrock para conversión potenciada por IA, procesamiento asíncrono con SQS, y almacenamiento efímero en DynamoDB. Cada tarea construye incrementalmente hacia un sistema completo y listo para producción.
 
-## Tasks
+## Tareas
 
-- [ ] 1. Set up project structure and core interfaces
-  - Create Go module with proper directory structure (cmd/, internal/, pkg/)
-  - Define core interfaces for SQLParser, DynamoDBDesigner, TerraformGenerator
-  - Set up testing framework with testify and gopter for property-based testing
-  - Create shared types and data models for requests/responses
-  - _Requirements: 1.1, 2.1, 8.1, 8.2, 8.3_
+- [ ] 1. Configurar estructura del proyecto e interfaces principales
+  - Crear módulo Go con estructura de directorios apropiada (cmd/, internal/, pkg/)
+  - Definir interfaces principales para SQL_Parser, DynamoDB_Designer, Terraform_Generator
+  - Configurar framework de testing con testify y gopter para pruebas basadas en propiedades
+  - Crear tipos compartidos y modelos de datos para requests/responses
+  - Definir estructura de entidad Conversion (id, status, input, output, timestamps, ttl)
+  - _Requerimientos: 1.1, 2.1, 8.1, 8.2, 8.3, 9.1_
 
-- [ ] 2. Implement SQL Parser component
-  - [ ] 2.1 Create SQL syntax validation and parsing logic
-    - Implement SQL CREATE TABLE statement parser
-    - Add support for common data types, constraints, and foreign keys
-    - Create structured representation of parsed schemas
-    - _Requirements: 1.2, 1.4_
+- [ ] 2. Implementar componente SQL_Parser
+  - [ ] 2.1 Crear lógica de validación y parsing de SQL
+    - Implementar parser de sentencias SQL CREATE TABLE de PostgreSQL
+    - Agregar soporte para tipos de datos comunes, constraints y llaves foráneas
+    - Crear representación estructurada de esquemas parseados
+    - _Requerimientos: 1.2, 1.4_
   
-  - [ ]* 2.2 Write property test for SQL syntax validation
-    - **Property 1: SQL Syntax Validation Correctness**
-    - **Validates: Requirements 1.2, 1.3**
+  - [ ]* 2.2 Escribir prueba de propiedades para validación de sintaxis SQL
+    - **Propiedad 1: Corrección de Validación de Sintaxis SQL**
+    - **Valida: Requerimientos 1.2, 1.3**
   
-  - [ ]* 2.3 Write unit tests for SQL parser edge cases
-    - Test specific SQL syntax examples and error conditions
-    - Test unsupported features and constraint validation
-    - _Requirements: 1.2, 1.3_
+  - [ ]* 2.3 Escribir pruebas unitarias para casos límite del parser SQL
+    - Probar ejemplos específicos de sintaxis SQL y condiciones de error
+    - Probar características no soportadas y validación de constraints
+    - _Requerimientos: 1.2, 1.3_
 
-- [ ] 3. Implement DynamoDB Designer component
-  - [ ] 3.1 Create core DynamoDB table design logic
-    - Implement table structure generation from parsed SQL
-    - Add support for partition key and sort key selection
-    - Create optimization pattern handling (read_heavy, write_heavy, balanced)
-    - _Requirements: 2.2, 2.3, 2.4, 2.5_
+- [ ] 3. Implementar componente DynamoDB_Designer
+  - [ ] 3.1 Crear lógica principal de diseño de tablas DynamoDB
+    - Implementar generación de estructura de tabla desde SQL parseado
+    - Agregar soporte para selección de partition key y sort key
+    - Crear manejo de patrones de optimización (read_heavy, write_heavy, balanced)
+    - _Requerimientos: 2.2, 2.3, 2.4, 2.5_
   
-  - [ ] 3.2 Implement GSI recommendation engine
-    - Analyze foreign key relationships for GSI opportunities
-    - Generate partition key and sort key recommendations for GSIs
-    - Create access pattern analysis from SQL schema relationships
-    - _Requirements: 3.1, 3.2, 4.2_
+  - [ ] 3.2 Implementar motor de recomendación de GSI
+    - Analizar relaciones de llaves foráneas para oportunidades de GSI
+    - Generar recomendaciones de partition key y sort key para GSIs
+    - Crear análisis de patrones de acceso desde relaciones del esquema SQL
+    - _Requerimientos: 3.1, 3.2, 4.2_
   
-  - [ ]* 3.3 Write property test for optimization pattern influence
-    - **Property 3: Optimization Pattern Influence**
-    - **Validates: Requirements 2.2, 2.3, 2.4, 2.5**
+  - [ ]* 3.3 Escribir prueba de propiedades para influencia de patrón de optimización
+    - **Propiedad 3: Influencia del Patrón de Optimización**
+    - **Valida: Requerimientos 2.2, 2.3, 2.4, 2.5**
   
-  - [ ]* 3.4 Write property test for GSI generation
-    - **Property 5: GSI Generation and Documentation**
-    - **Validates: Requirements 3.1, 3.2, 3.3**
+  - [ ]* 3.4 Escribir prueba de propiedades para generación de GSI
+    - **Propiedad 5: Generación y Documentación de GSI**
+    - **Valida: Requerimientos 3.1, 3.2, 3.3**
   
-  - [ ] 3.5 Implement single-table design pattern logic
-    - Analyze entity relationships for single-table opportunities
-    - Create composite key strategies for related entities
-    - Add denormalization recommendations for complex relationships
-    - _Requirements: 3.4, 4.5_
+  - [ ] 3.5 Implementar lógica de patrón de diseño de tabla única
+    - Analizar relaciones de entidades para oportunidades de tabla única
+    - Crear estrategias de claves compuestas para entidades relacionadas
+    - Agregar recomendaciones de desnormalización para relaciones complejas
+    - _Requerimientos: 3.4, 4.5_
   
-  - [ ]* 3.6 Write property test for single table design application
-    - **Property 6: Single Table Design Application**
-    - **Validates: Requirements 3.4**
+  - [ ]* 3.6 Escribir prueba de propiedades para aplicación de diseño de tabla única
+    - **Propiedad 6: Aplicación de Diseño de Tabla Única**
+    - **Valida: Requerimientos 3.4**
 
-- [ ] 4. Implement Terraform Generator component
-  - [ ] 4.1 Create Terraform code generation for DynamoDB resources
-    - Generate terraform resource blocks for DynamoDB tables
-    - Include GSI definitions and billing mode configuration
-    - Add IAM policy generation for table access
-    - _Requirements: 5.1, 5.2, 5.3_
+- [ ] 4. Implementar componente Terraform_Generator
+  - [ ] 4.1 Crear generación de código Terraform para recursos DynamoDB
+    - Generar bloques de recurso terraform para tablas DynamoDB
+    - Incluir definiciones de GSI y configuración de modo de facturación
+    - Agregar generación de políticas IAM para acceso a tablas
+    - _Requerimientos: 5.1, 5.2, 5.3_
   
-  - [ ] 4.2 Implement modular Terraform structure and best practices
-    - Create reusable Terraform modules
-    - Add variable definitions and output declarations
-    - Include CloudWatch alarms and backup configurations
-    - _Requirements: 5.4_
+  - [ ] 4.2 Implementar estructura modular de Terraform y mejores prácticas
+    - Crear módulos Terraform reutilizables
+    - Agregar definiciones de variables y declaraciones de outputs
+    - Incluir configuraciones de alarmas CloudWatch y backups
+    - _Requerimientos: 5.4_
   
-  - [ ]* 4.3 Write property test for Terraform code validity
-    - **Property 11: Terraform Code Validity and Completeness**
-    - **Validates: Requirements 5.1, 5.2, 5.3**
+  - [ ]* 4.3 Escribir prueba de propiedades para validez de código Terraform
+    - **Propiedad 11: Validez y Completitud del Código Terraform**
+    - **Valida: Requerimientos 5.1, 5.2, 5.3**
   
-  - [ ]* 4.4 Write unit tests for Terraform generation
-    - Test specific schema examples and edge cases
-    - Test billing optimization configurations
-    - _Requirements: 5.5_
+  - [ ]* 4.4 Escribir pruebas unitarias para generación de Terraform
+    - Probar ejemplos específicos de esquemas y casos límite
+    - Probar configuraciones de optimización de facturación
+    - _Requerimientos: 5.5_
 
-- [ ] 5. Checkpoint - Core components validation
-  - Ensure all tests pass, ask the user if questions arise.
+- [ ] 5. Checkpoint - Validación de componentes principales
+  - Asegurar que todas las pruebas pasen, preguntar al usuario si surgen dudas.
 
-- [ ] 6. Implement Amazon Bedrock integration
-  - [ ] 6.1 Create Bedrock client and Claude API integration
-    - Set up AWS SDK for Bedrock service
-    - Implement Claude model invocation with proper prompt engineering
-    - Add response parsing and validation for AI-generated designs
-    - _Requirements: 2.1, 2.6_
+- [ ] 6. Implementar integración con Amazon Bedrock
+  - [ ] 6.1 Crear cliente Bedrock e integración con API de Claude
+    - Configurar AWS SDK para servicio Bedrock
+    - Implementar invocación de modelo Claude con ingeniería de prompts apropiada
+    - Agregar parsing y validación de respuestas para diseños generados por IA
+    - _Requerimientos: 2.1, 2.6_
   
-  - [ ] 6.2 Implement AI-powered schema analysis
-    - Create prompts for SQL schema analysis and DynamoDB conversion
-    - Add context injection for optimization patterns and requirements
-    - Implement response validation and error handling for AI failures
-    - _Requirements: 2.1, 2.2_
+  - [ ] 6.2 Implementar análisis de esquemas potenciado por IA
+    - Crear prompts para análisis de esquemas SQL y conversión a DynamoDB
+    - Agregar inyección de contexto para patrones de optimización y requerimientos
+    - Implementar validación de respuestas y manejo de errores para fallos de IA
+    - _Requerimientos: 2.1, 2.2_
   
-  - [ ]* 6.3 Write property test for valid SQL processing
-    - **Property 2: Valid SQL Processing Acceptance**
-    - **Validates: Requirements 1.4, 2.1**
+  - [ ]* 6.3 Escribir prueba de propiedades para procesamiento de SQL válido
+    - **Propiedad 2: Aceptación de Procesamiento de SQL Válido**
+    - **Valida: Requerimientos 1.4, 2.1**
   
-  - [ ]* 6.4 Write unit tests for Bedrock integration
-    - Test AI service error handling and retry logic
-    - Test timeout configurations and fallback mechanisms
-    - _Requirements: 9.3_
+  - [ ]* 6.4 Escribir pruebas unitarias para integración con Bedrock
+    - Probar manejo de errores del servicio IA y lógica de reintentos
+    - Probar configuraciones de timeout y mecanismos de fallback
+    - _Requerimientos: 10.3, 10.4_
 
-- [ ] 7. Implement API Converter Lambda function
-  - [ ] 7.1 Create Lambda handler for conversion API
-    - Implement POST /api/convert endpoint handler
-    - Add request validation and response formatting
-    - Integrate SQL parser, DynamoDB designer, and Terraform generator
-    - _Requirements: 8.1, 8.4, 8.5_
+- [ ] 7. Implementar Conversion_Store (DynamoDB)
+  - [ ] 7.1 Crear repositorio DynamoDB para conversiones
+    - Implementar cliente DynamoDB con AWS SDK v2
+    - Crear operaciones CRUD para entidad Conversion
+    - Implementar actualización de estados (PENDING, PROCESSING, COMPLETED, FAILED)
+    - _Requerimientos: 9.1, 9.2, 9.3, 9.4_
   
-  - [ ] 7.2 Implement validation and health check endpoints
-    - Create POST /api/validate endpoint for SQL syntax checking
-    - Implement GET /api/health endpoint with system status
-    - Add comprehensive error handling and logging
-    - _Requirements: 8.2, 8.3, 10.1, 10.2_
+  - [ ] 7.2 Implementar consultas por fecha y TTL
+    - Crear query por GSI de fecha (date_partition) para listar conversiones del día
+    - Configurar TTL de 24 horas en todos los registros
+    - Implementar GetItem por conversion_id para detalle
+    - _Requerimientos: 9.5, 9.6, 9.7_
   
-  - [ ]* 7.3 Write property test for API response correctness
-    - **Property 17: API Response Correctness**
-    - **Validates: Requirements 8.4, 8.5**
-  
-  - [ ]* 7.4 Write property test for conversion response completeness
-    - **Property 4: Conversion Response Completeness**
-    - **Validates: Requirements 2.6**
+  - [ ]* 7.3 Escribir pruebas unitarias para repositorio DynamoDB
+    - Probar operaciones CRUD con DynamoDB Local
+    - Probar queries por fecha y manejo de TTL
+    - _Requerimientos: 9.1, 9.5_
 
-- [ ] 8. Implement Frontend Proxy Lambda function
-  - [ ] 8.1 Create Lambda handler for static asset serving
-    - Implement S3 client integration for private bucket access
-    - Add origin verification using custom headers
-    - Create HTTPS enforcement and security headers
-    - _Requirements: 1.1, 6.4, 7.1, 7.2_
+- [ ] 8. Implementar Conversion_Queue (SQS)
+  - [ ] 8.1 Crear cliente SQS para encolar conversiones
+    - Implementar SendMessage para nuevas conversiones
+    - Configurar Dead Letter Queue para mensajes fallidos
+    - Agregar atributos de mensaje (conversion_id, timestamp)
+    - _Requerimientos: 6.4, 10.5_
   
-  - [ ] 8.2 Implement security and compression features
-    - Add asset compression for optimal transfer speeds
-    - Implement Content-Security-Policy and other security headers
-    - Create SPA routing support for single-page application
-    - _Requirements: 7.2, 9.5_
-  
-  - [ ]* 8.3 Write property test for security header validation
-    - **Property 15: Security Header Validation**
-    - **Validates: Requirements 7.1, 7.2**
-  
-  - [ ]* 8.4 Write property test for S3 security enforcement
-    - **Property 14: S3 Security Enforcement**
-    - **Validates: Requirements 6.4, 7.4**
+  - [ ]* 8.2 Escribir pruebas unitarias para integración SQS
+    - Probar encolado y estructura de mensajes
+    - Probar configuración de DLQ
+    - _Requerimientos: 6.4, 10.5_
 
-- [ ] 9. Implement AWS Secrets Manager integration
-  - [ ] 9.1 Create secrets management for sensitive configuration
-    - Implement AWS Secrets Manager client integration
-    - Add origin verification secret retrieval
-    - Create configuration management for both Lambda functions
-    - _Requirements: 7.6_
+- [ ] 9. Implementar función Lambda API_Handler
+  - [ ] 9.1 Crear handler Lambda para endpoints de API
+    - Implementar handler POST /convert (validar SQL, guardar PENDING, encolar SQS, retornar ID)
+    - Implementar handler GET /conversions (query por fecha de hoy)
+    - Implementar handler GET /conversions/{id} (obtener detalle completo)
+    - Implementar handler GET /health (estado del sistema)
+    - _Requerimientos: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6_
   
-  - [ ]* 9.2 Write property test for secrets management usage
-    - **Property 16: Secrets Management Usage**
-    - **Validates: Requirements 7.6**
+  - [ ] 9.2 Implementar validación de origen y seguridad
+    - Crear Origin_Verifier para validar header X-Origin-Verify
+    - Agregar manejo de errores HTTP y códigos de estado apropiados
+    - Implementar logging estructurado con correlation IDs
+    - _Requerimientos: 7.1, 7.4, 11.1, 11.2_
+  
+  - [ ]* 9.3 Escribir prueba de propiedades para corrección de respuestas API
+    - **Propiedad 17: Corrección de Respuestas API**
+    - **Valida: Requerimientos 8.4, 8.5, 8.6**
+  
+  - [ ]* 9.4 Escribir prueba de propiedades para validación de seguridad
+    - **Propiedad 15: Validación de Headers de Seguridad**
+    - **Valida: Requerimientos 7.1, 7.4**
 
-- [ ] 10. Implement comprehensive logging and monitoring
-  - [ ] 10.1 Create structured logging with correlation IDs
-    - Implement CloudWatch logging for all API operations
-    - Add correlation ID generation and tracking
-    - Create detailed error logging with context information
-    - _Requirements: 10.1, 10.2, 10.4_
+- [ ] 10. Implementar función Lambda Conversion_Worker
+  - [ ] 10.1 Crear handler Lambda con trigger SQS
+    - Implementar consumo de mensajes de Conversion_Queue
+    - Actualizar estado a PROCESSING al iniciar
+    - Integrar SQL_Parser, Conversion_Engine, DynamoDB_Designer, Terraform_Generator
+    - _Requerimientos: 2.1, 6.2, 9.2_
   
-  - [ ] 10.2 Implement health check and monitoring endpoints
-    - Create comprehensive health status reporting
-    - Add system availability monitoring
-    - Implement performance metrics collection
-    - _Requirements: 10.5_
+  - [ ] 10.2 Implementar flujo completo de conversión
+    - Parsear SQL de entrada
+    - Invocar Bedrock Claude para análisis y conversión
+    - Generar diseño DynamoDB con GSIs y patrones de acceso
+    - Generar código Terraform
+    - Actualizar Conversion_Store con resultado (COMPLETED o FAILED)
+    - _Requerimientos: 2.6, 9.3, 9.4_
   
-  - [ ]* 10.3 Write property test for comprehensive logging
-    - **Property 20: Comprehensive Logging**
-    - **Validates: Requirements 10.1, 10.2, 10.4**
+  - [ ] 10.3 Implementar manejo de errores y logging
+    - Capturar errores de Bedrock y actualizar estado a FAILED
+    - Registrar contexto detallado de errores incluyendo input SQL
+    - Configurar timeout de 120 segundos para acomodar Bedrock
+    - _Requerimientos: 10.3, 10.4, 11.3, 11.4_
   
-  - [ ]* 10.4 Write property test for health check availability
-    - **Property 21: Health Check Availability**
-    - **Validates: Requirements 10.5**
+  - [ ]* 10.4 Escribir prueba de propiedades para completitud de respuesta de conversión
+    - **Propiedad 4: Completitud de Respuesta de Conversión**
+    - **Valida: Requerimientos 2.6**
 
-- [ ] 11. Checkpoint - Lambda functions validation
-  - Ensure all tests pass, ask the user if questions arise.
+- [ ] 11. Checkpoint - Validación de funciones Lambda
+  - Asegurar que todas las pruebas pasen, preguntar al usuario si surgen dudas.
 
-- [ ] 12. Create frontend web application
-  - [ ] 12.1 Build single-page application interface
-    - Create HTML/CSS/JavaScript for SQL input interface
-    - Implement form handling for SQL schema input
-    - Add conversion options UI (optimization patterns, single-table design)
-    - _Requirements: 1.1_
+- [ ] 12. Implementar integración con AWS Secrets Manager
+  - [ ] 12.1 Crear gestión de secretos para configuración sensible
+    - Implementar integración con cliente AWS Secrets Manager
+    - Agregar recuperación de secreto de verificación de origen
+    - Crear gestión de configuración para ambas funciones Lambda
+    - _Requerimientos: 7.6_
   
-  - [ ] 12.2 Implement conversion results display
-    - Create UI for displaying DynamoDB table designs
-    - Add GSI recommendations and access pattern visualization
-    - Implement Terraform code display with syntax highlighting
-    - _Requirements: 2.6, 3.3, 4.1_
-  
-  - [ ] 12.3 Add error handling and user feedback
-    - Implement error message display for validation failures
-    - Add loading states and progress indicators
-    - Create user-friendly error messages and suggestions
-    - _Requirements: 1.3, 8.4_
+  - [ ]* 12.2 Escribir prueba de propiedades para uso de gestión de secretos
+    - **Propiedad 16: Uso de Gestión de Secretos**
+    - **Valida: Requerimientos 7.6**
 
-- [ ] 13. Create Terraform infrastructure code
-  - [ ] 13.1 Create Lambda function infrastructure
-    - Write Terraform for both Lambda functions with ARM64 configuration
-    - Add Function URL configuration and IAM roles
-    - Include CloudWatch log groups and monitoring setup
-    - _Requirements: 6.1, 6.2, 6.3_
+- [ ] 13. Implementar logging y monitoreo comprehensivo
+  - [ ] 13.1 Crear logging estructurado con IDs de correlación
+    - Implementar logging a CloudWatch para todas las operaciones API
+    - Agregar generación y tracking de correlation ID (conversion_id)
+    - Crear logging detallado de errores con información de contexto
+    - _Requerimientos: 11.1, 11.2, 11.4_
   
-  - [ ] 13.2 Create S3 and security infrastructure
-    - Write Terraform for private S3 bucket configuration
-    - Add Secrets Manager resources for origin verification
-    - Include IAM policies with least privilege access
-    - _Requirements: 6.4, 7.5, 7.6_
+  - [ ] 13.2 Implementar monitoreo de cola SQS
+    - Monitorear profundidad de cola y edad de mensajes
+    - Crear alertas para mensajes en DLQ
+    - Implementar métricas de rendimiento de procesamiento
+    - _Requerimientos: 11.5_
   
-  - [ ] 13.3 Add monitoring and observability infrastructure
-    - Create CloudWatch dashboards and alarms
-    - Add performance monitoring and alerting
-    - Include backup and disaster recovery configurations
-    - _Requirements: 10.3_
-
-- [ ] 14. Implement build and deployment pipeline
-  - [ ] 14.1 Create Go build process for Lambda functions
-    - Set up cross-compilation for ARM64 architecture
-    - Create build scripts for both Lambda functions
-    - Add dependency management and vendoring
-    - _Requirements: 6.3_
+  - [ ]* 13.3 Escribir prueba de propiedades para logging comprehensivo
+    - **Propiedad 20: Logging Comprehensivo**
+    - **Valida: Requerimientos 11.1, 11.2, 11.4**
   
-  - [ ] 14.2 Create frontend build and S3 sync process
-    - Implement frontend asset optimization and minification
-    - Create S3 sync process for static asset deployment
-    - Add cache invalidation and deployment verification
-    - _Requirements: 1.1, 9.5_
+  - [ ]* 13.4 Escribir prueba de propiedades para disponibilidad de health check
+    - **Propiedad 21: Disponibilidad de Health Check**
+    - **Valida: Requerimientos 11.6**
 
-- [ ] 15. Integration testing and system validation
-  - [ ]* 15.1 Write integration tests for end-to-end workflows
-    - Test complete SQL to DynamoDB conversion flow
-    - Test security enforcement and error handling
-    - Test AI integration and timeout handling
-    - _Requirements: All requirements_
+- [ ] 14. Checkpoint - Validación de infraestructura de soporte
+  - Asegurar que todas las pruebas pasen, preguntar al usuario si surgen dudas.
+
+- [ ] 15. Crear aplicación web frontend
+  - [ ] 15.1 Construir interfaz de aplicación de página única
+    - Crear HTML/CSS/JavaScript para interfaz de entrada SQL con vista dividida
+    - Implementar manejo de formularios para entrada de esquemas SQL (textarea y archivo)
+    - Agregar UI de opciones de conversión (patrones de optimización, diseño de tabla única)
+    - Implementar lista de "Conversiones del Día" con auto-refresh
+    - _Requerimientos: 1.1, 1.5, 1.6_
   
-  - [ ]* 15.2 Write property tests for access pattern analysis
-    - **Property 8: Access Pattern Documentation Completeness**
-    - **Validates: Requirements 4.1, 4.3, 4.4**
+  - [ ] 15.2 Implementar visualización de resultados de conversión
+    - Crear UI para mostrar diseños de tablas DynamoDB
+    - Agregar visualización de recomendaciones de GSI y patrones de acceso
+    - Implementar display de código Terraform con resaltado de sintaxis
+    - Mostrar estados de conversión (PENDING, PROCESSING, COMPLETED, FAILED)
+    - _Requerimientos: 2.6, 3.3, 4.1, 9.7_
   
-  - [ ]* 15.3 Write property tests for complex relationship handling
-    - **Property 10: Complex Relationship Handling**
-    - **Validates: Requirements 4.5**
+  - [ ] 15.3 Implementar polling y manejo de estados
+    - Crear lógica de polling para conversiones en progreso
+    - Implementar backoff exponencial para polling eficiente
+    - Agregar indicadores de carga y estados de progreso
+    - _Requerimientos: 9.7_
+  
+  - [ ] 15.4 Agregar manejo de errores y feedback al usuario
+    - Implementar display de mensajes de error para fallos de validación
+    - Crear mensajes de error amigables y sugerencias
+    - _Requerimientos: 1.3, 8.5_
 
-- [ ] 16. Final checkpoint - Complete system validation
-  - Ensure all tests pass, ask the user if questions arise.
+- [ ] 16. Crear código de infraestructura Terraform
+  - [ ] 16.1 Crear infraestructura de funciones Lambda
+    - Escribir Terraform para ambas funciones Lambda con configuración ARM64
+    - Agregar integración con API Gateway y roles IAM
+    - Incluir grupos de logs CloudWatch y configuración de monitoreo
+    - Configurar timeouts (10s para API_Handler, 120s para Conversion_Worker)
+    - _Requerimientos: 6.1, 6.2, 6.3, 10.3, 10.4_
+  
+  - [ ] 16.2 Crear infraestructura de SQS y DynamoDB
+    - Escribir Terraform para Conversion_Queue con DLQ
+    - Crear tabla Conversion_Store con GSI por fecha y TTL habilitado
+    - Configurar políticas IAM para acceso entre servicios
+    - _Requerimientos: 6.4, 6.5, 9.5, 9.6_
+  
+  - [ ] 16.3 Crear infraestructura de seguridad
+    - Escribir Terraform para recursos de Secrets Manager
+    - Incluir políticas IAM con acceso de mínimo privilegio
+    - Agregar configuración de API Gateway con validación de origen
+    - _Requerimientos: 7.5, 7.6_
+  
+  - [ ] 16.4 Agregar infraestructura de monitoreo y observabilidad
+    - Crear dashboards y alarmas de CloudWatch
+    - Agregar monitoreo de rendimiento y alertas
+    - Incluir monitoreo de métricas de SQS (profundidad de cola, edad de mensajes)
+    - _Requerimientos: 11.3, 11.5_
 
-## Notes
+- [ ] 17. Implementar pipeline de build y deployment
+  - [ ] 17.1 Crear proceso de build de Go para funciones Lambda
+    - Configurar cross-compilation para arquitectura ARM64
+    - Crear scripts de build para ambas funciones Lambda
+    - Agregar gestión de dependencias y vendoring
+    - _Requerimientos: 6.3_
+  
+  - [ ] 17.2 Crear proceso de build y deployment de frontend
+    - Implementar optimización y minificación de assets frontend
+    - Crear proceso de deployment a hosting estático (Cloudflare Pages o S3+CloudFront)
+    - Agregar invalidación de caché y verificación de deployment
+    - _Requerimientos: 1.1, 10.1_
 
-- Tasks marked with `*` are optional and can be skipped for faster MVP
-- Each task references specific requirements for traceability
-- Checkpoints ensure incremental validation and user feedback
-- Property tests validate universal correctness properties with minimum 100 iterations
-- Unit tests validate specific examples and edge cases
-- The build process targets ARM64 Graviton2 for cost optimization
-- All components implement comprehensive error handling and security measures
+- [ ] 18. Pruebas de integración y validación del sistema
+  - [ ]* 18.1 Escribir pruebas de integración para flujos end-to-end
+    - Probar flujo completo de conversión SQL a DynamoDB (submit → poll → result)
+    - Probar enforcement de seguridad y manejo de errores
+    - Probar integración de IA y manejo de timeouts
+    - Probar lista de conversiones del día y TTL
+    - _Requerimientos: Todos los requerimientos_
+  
+  - [ ]* 18.2 Escribir pruebas de propiedades para análisis de patrones de acceso
+    - **Propiedad 8: Completitud de Documentación de Patrones de Acceso**
+    - **Valida: Requerimientos 4.1, 4.3, 4.4**
+  
+  - [ ]* 18.3 Escribir pruebas de propiedades para manejo de relaciones complejas
+    - **Propiedad 10: Manejo de Relaciones Complejas**
+    - **Valida: Requerimientos 4.5**
+
+- [ ] 19. Checkpoint final - Validación completa del sistema
+  - Asegurar que todas las pruebas pasen, preguntar al usuario si surgen dudas.
+
+## Notas
+
+- Las tareas marcadas con `*` son opcionales y pueden omitirse para un MVP más rápido
+- Cada tarea referencia requerimientos específicos para trazabilidad
+- Los checkpoints aseguran validación incremental y feedback del usuario
+- Las pruebas de propiedades validan propiedades de corrección universal con mínimo 100 iteraciones
+- Las pruebas unitarias validan ejemplos específicos y casos límite
+- El proceso de build apunta a ARM64 Graviton2 para optimización de costos
+- Todos los componentes implementan manejo de errores comprehensivo y medidas de seguridad
+- El modelo "Conversiones del Día" elimina la necesidad de autenticación y sesiones de usuario
+- El TTL de 24 horas asegura limpieza automática sin intervención manual
