@@ -40,15 +40,48 @@ resource "aws_api_gateway_rest_api" "this" {
 }
 
 # ============================================
-# Resources for non-root paths
+# Resources for non-root paths (split by depth to avoid circular dependency)
 # ============================================
-# Create resources for all path segments (e.g., /api, /api/convert, /api/validate)
-resource "aws_api_gateway_resource" "paths" {
-  for_each = local.path_parts_map
+resource "aws_api_gateway_resource" "level1" {
+  for_each = { for p, v in local.path_parts_map : p => v if length(v.parts) == 1 }
 
   rest_api_id = aws_api_gateway_rest_api.this.id
-  parent_id = each.value.parent_path == "/" ? aws_api_gateway_rest_api.this.root_resource_id : aws_api_gateway_resource.paths[each.value.parent_path].id
-  path_part = each.value.path_part
+  parent_id   = aws_api_gateway_rest_api.this.root_resource_id
+  path_part   = each.value.path_part
+}
+
+resource "aws_api_gateway_resource" "level2" {
+  for_each = { for p, v in local.path_parts_map : p => v if length(v.parts) == 2 }
+
+  rest_api_id = aws_api_gateway_rest_api.this.id
+  parent_id   = aws_api_gateway_resource.level1[each.value.parent_path].id
+  path_part   = each.value.path_part
+}
+
+resource "aws_api_gateway_resource" "level3" {
+  for_each = { for p, v in local.path_parts_map : p => v if length(v.parts) == 3 }
+
+  rest_api_id = aws_api_gateway_rest_api.this.id
+  parent_id   = aws_api_gateway_resource.level2[each.value.parent_path].id
+  path_part   = each.value.path_part
+}
+
+resource "aws_api_gateway_resource" "level4" {
+  for_each = { for p, v in local.path_parts_map : p => v if length(v.parts) == 4 }
+
+  rest_api_id = aws_api_gateway_rest_api.this.id
+  parent_id   = aws_api_gateway_resource.level3[each.value.parent_path].id
+  path_part   = each.value.path_part
+}
+
+locals {
+  # Merge all level resources into a single map for easy lookup
+  all_path_resources = merge(
+    aws_api_gateway_resource.level1,
+    aws_api_gateway_resource.level2,
+    aws_api_gateway_resource.level3,
+    aws_api_gateway_resource.level4,
+  )
 }
 
 # ============================================
@@ -57,9 +90,9 @@ resource "aws_api_gateway_resource" "paths" {
 resource "aws_api_gateway_method" "routes" {
   for_each = local.parsed_routes
 
-  rest_api_id = aws_api_gateway_rest_api.this.id
-  resource_id = each.value.path == "/" ? aws_api_gateway_rest_api.this.root_resource_id : aws_api_gateway_resource.paths[each.value.path].id
-  http_method = each.value.method
+  rest_api_id   = aws_api_gateway_rest_api.this.id
+  resource_id   = each.value.path == "/" ? aws_api_gateway_rest_api.this.root_resource_id : local.all_path_resources[each.value.path].id
+  http_method   = each.value.method
   authorization = "NONE"
 }
 
@@ -67,7 +100,7 @@ resource "aws_api_gateway_integration" "routes" {
   for_each = local.parsed_routes
 
   rest_api_id = aws_api_gateway_rest_api.this.id
-  resource_id = each.value.path == "/" ? aws_api_gateway_rest_api.this.root_resource_id : aws_api_gateway_resource.paths[each.value.path].id
+  resource_id = each.value.path == "/" ? aws_api_gateway_rest_api.this.root_resource_id : local.all_path_resources[each.value.path].id
   http_method = aws_api_gateway_method.routes[each.key].http_method
 
   integration_http_method = "POST"
