@@ -17,7 +17,7 @@ module "api_gateway" {
 
   # Routes configuration
   routes = {
-    "GET /api/v1/schemas" = {}
+    "POST /api/v1/schemas" = {}
   }
 
   tags = var.common_tags
