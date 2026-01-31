@@ -2,8 +2,9 @@
 # Bedrock Module - Foundation Model Access
 # ============================================
 
-# Data source para obtener modelos disponibles
+# Data source para obtener modelos disponibles (skipped in LocalStack)
 data "aws_bedrock_foundation_models" "available" {
+  count       = var.skip_model_validation ? 0 : 1
   by_provider = var.model_provider
 }
 

@@ -12,6 +12,7 @@ Este documento detalla la construcción de la primera fase del sistema SQL to Dy
 ## Objetivo de la Fase
 
 Crear la especificación completa y la lógica de validación de esquemas SQL (PostgreSQL) que serán:
+
 - Recibidos vía API Gateway como String
 - Validados en la Lambda Process Handler
 - Estructurados en modelos de datos consistentes
@@ -38,7 +39,7 @@ Usuario → API Gateway → Process Handler Lambda → Validación SQL
 
 **Crear este archivo nuevo** con el siguiente contenido:
 
-```markdown
+````markdown
 # API Contracts - SQL to DynamoDB Parser
 
 ## Endpoint: POST /convert
@@ -48,14 +49,17 @@ Usuario → API Gateway → Process Handler Lambda → Validación SQL
 **URL**: `POST /api/convert`
 
 **Headers**:
+
 ```json
 {
   "Content-Type": "application/json",
   "X-Origin-Verify": "<secret-token>"
 }
 ```
+````
 
 **Body**:
+
 ```json
 {
   "sqlContent": "CREATE TABLE users (\n  id SERIAL PRIMARY KEY,\n  email VARCHAR(255) UNIQUE NOT NULL\n);",
@@ -64,6 +68,7 @@ Usuario → API Gateway → Process Handler Lambda → Validación SQL
 ```
 
 **Campos**:
+
 - `sqlContent` (string, requerido): Contenido SQL completo con sentencias CREATE TABLE e índices
 - `optimizationType` (string, opcional): Tipo de optimización deseada
   - Valores válidos: `read_heavy`, `write_heavy`, `balanced`
@@ -72,6 +77,7 @@ Usuario → API Gateway → Process Handler Lambda → Validación SQL
 ### Response
 
 **Success (202 Accepted)**:
+
 ```json
 {
   "conversionId": "550e8400-e29b-41d4-a716-446655440000",
@@ -82,6 +88,7 @@ Usuario → API Gateway → Process Handler Lambda → Validación SQL
 ```
 
 **Error (400 Bad Request)**:
+
 ```json
 {
   "error": "INVALID_SQL_SYNTAX",
@@ -95,6 +102,7 @@ Usuario → API Gateway → Process Handler Lambda → Validación SQL
 ```
 
 **Error Codes**:
+
 - `INVALID_SQL_SYNTAX`: Error de sintaxis SQL
 - `EMPTY_SQL_CONTENT`: Campo sqlContent vacío
 - `INVALID_OPTIMIZATION_TYPE`: Tipo de optimización no válido
@@ -110,12 +118,14 @@ Usuario → API Gateway → Process Handler Lambda → Validación SQL
 **URL**: `GET /api/conversions?date=2026-01-28`
 
 **Query Parameters**:
+
 - `date` (string, opcional): Fecha en formato YYYY-MM-DD
   - Default: fecha actual
 
 ### Response
 
 **Success (200 OK)**:
+
 ```json
 {
   "date": "2026-01-28",
@@ -150,6 +160,7 @@ Usuario → API Gateway → Process Handler Lambda → Validación SQL
 ### Response
 
 **Success (200 OK)**:
+
 ```json
 {
   "conversionId": "550e8400-e29b-41d4-a716-446655440000",
@@ -170,6 +181,7 @@ Usuario → API Gateway → Process Handler Lambda → Validación SQL
 ```
 
 **Status Values**:
+
 - `PENDING`: En cola, esperando procesamiento
 - `PROCESSING`: Siendo procesado por Bedrock
 - `COMPLETED`: Conversión exitosa
@@ -186,6 +198,7 @@ Usuario → API Gateway → Process Handler Lambda → Validación SQL
 ### Response
 
 **Success (200 OK)**:
+
 ```json
 {
   "status": "healthy",
@@ -197,7 +210,8 @@ Usuario → API Gateway → Process Handler Lambda → Validación SQL
   }
 }
 ```
-```
+
+````
 
 ---
 
@@ -234,9 +248,10 @@ Usuario → API Gateway → Process Handler Lambda → Validación SQL
   },
   "errorMessage": "string (opcional)"
 }
-```
+````
 
 **Indexes**:
+
 - **Primary Key**: `conversionId`
 - **GSI**: `conversionDate-createdAt-index`
   - PK: `conversionDate`
@@ -330,7 +345,8 @@ Estructura interna para resultados de validación:
   "extractedIndexes": "number"
 }
 ```
-```
+
+````
 
 ---
 
@@ -374,14 +390,16 @@ Validar la sintaxis y estructura de sentencias SQL (PostgreSQL) antes de encolar
 2. Buscar patrón: CREATE\s+TABLE\s+.*?;
 3. Flags: CASE_INSENSITIVE | DOTALL
 4. Extraer todas las coincidencias
-```
+````
 
 **Validación**:
+
 - ✅ Al menos 1 sentencia CREATE TABLE encontrada
 - ✅ Cada sentencia termina con `;`
 - ✅ Sintaxis válida: `CREATE TABLE [IF NOT EXISTS] nombre (...)`
 
 **Errores posibles**:
+
 - `NO_CREATE_TABLES_FOUND`: No se encontraron CREATE TABLE
 - `INCOMPLETE_STATEMENT`: Sentencia sin terminar (falta `;`)
 
@@ -394,6 +412,7 @@ Para cada tabla extraída:
 #### 3.1 Validar Nombre de Tabla
 
 **Checks**:
+
 - ✅ Nombre extraído correctamente
 - ✅ Formato válido: `[esquema.]nombre_tabla`
 - ✅ Caracteres permitidos: letras, números, guiones bajos
@@ -405,6 +424,7 @@ Para cada tabla extraída:
 #### 3.2 Validar Definiciones de Columnas
 
 **Extracción**:
+
 ```plaintext
 1. Extraer contenido entre paréntesis: CREATE TABLE nombre (...)
 2. Dividir por comas, ignorando comas dentro de paréntesis
@@ -412,11 +432,13 @@ Para cada tabla extraída:
 ```
 
 **Checks por columna**:
+
 - ✅ Nombre de columna válido
 - ✅ Tipo de dato especificado
 - ✅ Sintaxis de constraints correcta
 
 **Validaciones**:
+
 - Nombre columna: `^"?[\w.-]+"?\s+`
 - Tipo dato: Lista de tipos PostgreSQL válidos
 - NOT NULL, UNIQUE, DEFAULT, CHECK correctamente formateados
@@ -428,17 +450,20 @@ Para cada tabla extraída:
 **Patterns soportados**:
 
 **Inline**:
+
 ```sql
 id SERIAL PRIMARY KEY
 ```
 
 **Table-level**:
+
 ```sql
 PRIMARY KEY (id)
 CONSTRAINT pk_nombre PRIMARY KEY (col1, col2)
 ```
 
 **Checks**:
+
 - ✅ Al menos 1 PK por tabla (warning si no existe)
 - ✅ Columnas PK existen en definiciones
 - ✅ Sintaxis correcta
@@ -450,17 +475,20 @@ CONSTRAINT pk_nombre PRIMARY KEY (col1, col2)
 **Patterns soportados**:
 
 **Inline**:
+
 ```sql
 user_id INTEGER REFERENCES users(id)
 ```
 
 **Table-level**:
+
 ```sql
 FOREIGN KEY (user_id) REFERENCES users(id)
 CONSTRAINT fk_name FOREIGN KEY (col) REFERENCES table(col)
 ```
 
 **Checks**:
+
 - ✅ Sintaxis correcta de REFERENCES
 - ✅ Tabla referenciada mencionada
 - ✅ Columnas fuente y destino especificadas
@@ -474,17 +502,20 @@ CONSTRAINT fk_name FOREIGN KEY (col) REFERENCES table(col)
 **Patterns**:
 
 **Inline**:
+
 ```sql
 email VARCHAR(255) UNIQUE
 ```
 
 **Table-level**:
+
 ```sql
 UNIQUE (email)
 CONSTRAINT uk_name UNIQUE (col1, col2)
 ```
 
 **Checks**:
+
 - ✅ Sintaxis correcta
 - ✅ Columnas existen
 
@@ -493,11 +524,13 @@ CONSTRAINT uk_name UNIQUE (col1, col2)
 ### 4. Extracción y Validación de Índices
 
 **Pattern**:
+
 ```sql
 CREATE [UNIQUE] INDEX [IF NOT EXISTS] nombre ON tabla (columnas);
 ```
 
 **Checks**:
+
 - ✅ Nombre de índice válido
 - ✅ Tabla especificada
 - ✅ Al menos 1 columna
@@ -674,19 +707,19 @@ END FUNCTION
 
 ## Códigos de Error de Validación
 
-| Código | Descripción | Severidad |
-|--------|-------------|-----------|
-| `EMPTY_SQL_CONTENT` | Campo sqlContent vacío | ERROR |
-| `INVALID_SQL_SYNTAX` | Sintaxis SQL inválida | ERROR |
-| `NO_CREATE_TABLES_FOUND` | No se encontraron CREATE TABLE | ERROR |
-| `INCOMPLETE_STATEMENT` | Sentencia sin terminar (falta `;`) | ERROR |
-| `INVALID_TABLE_NAME` | Nombre de tabla inválido | ERROR |
-| `INVALID_COLUMN_NAME` | Nombre de columna inválido | ERROR |
-| `INVALID_DATA_TYPE` | Tipo de dato no reconocido | ERROR |
-| `INVALID_CONSTRAINT_SYNTAX` | Sintaxis de constraint incorrecta | ERROR |
-| `NO_PRIMARY_KEY` | Tabla sin primary key | WARNING |
-| `DUPLICATE_COLUMN` | Columna duplicada | ERROR |
-| `FK_INVALID_REFERENCE` | Foreign key con sintaxis inválida | ERROR |
+| Código                      | Descripción                        | Severidad |
+| --------------------------- | ---------------------------------- | --------- |
+| `EMPTY_SQL_CONTENT`         | Campo sqlContent vacío             | ERROR     |
+| `INVALID_SQL_SYNTAX`        | Sintaxis SQL inválida              | ERROR     |
+| `NO_CREATE_TABLES_FOUND`    | No se encontraron CREATE TABLE     | ERROR     |
+| `INCOMPLETE_STATEMENT`      | Sentencia sin terminar (falta `;`) | ERROR     |
+| `INVALID_TABLE_NAME`        | Nombre de tabla inválido           | ERROR     |
+| `INVALID_COLUMN_NAME`       | Nombre de columna inválido         | ERROR     |
+| `INVALID_DATA_TYPE`         | Tipo de dato no reconocido         | ERROR     |
+| `INVALID_CONSTRAINT_SYNTAX` | Sintaxis de constraint incorrecta  | ERROR     |
+| `NO_PRIMARY_KEY`            | Tabla sin primary key              | WARNING   |
+| `DUPLICATE_COLUMN`          | Columna duplicada                  | ERROR     |
+| `FK_INVALID_REFERENCE`      | Foreign key con sintaxis inválida  | ERROR     |
 
 ---
 
@@ -720,7 +753,8 @@ END FUNCTION
   ]
 }
 ```
-```
+
+````
 
 ---
 
@@ -780,7 +814,7 @@ START
   └─ expiresAt
   ↓
 END
-```
+````
 
 ---
 
@@ -901,10 +935,12 @@ END FUNCTION
 ## Manejo de Errores
 
 ### Errores Recuperables
+
 - Validación SQL fallida → Retornar 400 con detalles
 - Payload inválido → Retornar 400
 
 ### Errores No Recuperables
+
 - Fallo DynamoDB → Retornar 500
 - Fallo SQS → Log error pero NO fallar request (mensaje se reintenta)
 
@@ -958,7 +994,8 @@ IAM Permissions:
   - logs:CreateLogStream
   - logs:PutLogEvents
 ```
-```
+
+````
 
 ---
 
@@ -1011,7 +1048,7 @@ START
   └─ total
   ↓
 END
-```
+````
 
 ### Pseudocódigo
 
@@ -1243,7 +1280,8 @@ ERROR: DynamoDB getItem failed: <error>
 - `DynamoDBQuerySuccess` (Count)
 - `DynamoDBQueryFailure` (Count)
 - `QueryHandlerDuration` (Milliseconds)
-```
+
+````
 
 ---
 
@@ -1264,18 +1302,20 @@ Este documento es una **especificación** de la infraestructura que se construir
 
 ## Estructura de Módulos
 
-```
+````
+
 infra/terraform/
 ├── modules/
-│   ├── dynamodb/          # Tabla schemas_table con GSI y TTL
-│   ├── sqs/               # Cola conversion_queue + DLQ
-│   ├── lambda/            # Process Handler + Query Handler
-│   ├── gateway/           # API Gateway (REST v1 / HTTP v2)
-│   └── iam/               # Roles y políticas
+│ ├── dynamodb/ # Tabla schemas_table con GSI y TTL
+│ ├── sqs/ # Cola conversion_queue + DLQ
+│ ├── lambda/ # Process Handler + Query Handler
+│ ├── gateway/ # API Gateway (REST v1 / HTTP v2)
+│ └── iam/ # Roles y políticas
 └── environments/
-    ├── dev/               # LocalStack
-    └── prod/              # AWS
-```
+├── dev/ # LocalStack
+└── prod/ # AWS
+
+````
 
 ---
 
@@ -1325,9 +1365,10 @@ resource "aws_dynamodb_table" "schemas_table" {
     Project     = "sql-to-dynamodb-parser"
   }
 }
-```
+````
 
 **Outputs**:
+
 - `table_name`
 - `table_arn`
 - `gsi_name`
@@ -1375,6 +1416,7 @@ resource "aws_sqs_queue" "conversion_dlq" {
 ```
 
 **Outputs**:
+
 - `queue_url`
 - `queue_arn`
 - `dlq_url`
@@ -1446,6 +1488,7 @@ resource "aws_lambda_function" "query_handler" {
 ```
 
 **Outputs**:
+
 - `process_handler_arn`
 - `process_handler_invoke_arn`
 - `query_handler_arn`
@@ -1487,6 +1530,7 @@ routes = {
 ### Process Handler Role
 
 **Permisos**:
+
 - `dynamodb:PutItem` en schemas_table
 - `sqs:SendMessage` en conversion_queue
 - `logs:CreateLogGroup`, `logs:CreateLogStream`, `logs:PutLogEvents`
@@ -1494,6 +1538,7 @@ routes = {
 ### Query Handler Role
 
 **Permisos**:
+
 - `dynamodb:GetItem` en schemas_table
 - `dynamodb:Query` en schemas_table (GSI)
 - `logs:CreateLogGroup`, `logs:CreateLogStream`, `logs:PutLogEvents`
@@ -1538,6 +1583,7 @@ terraform apply
 # Destroy
 terraform destroy
 ```
+
 ```
 
 ---
@@ -1592,3 +1638,6 @@ terraform destroy
 ✅ Referencias a `models.md`, `postgres_extraction.md`, `postgres_index.md` incorporadas
 
 **Estado**: Especificación completa lista para implementación
+
+aws --endpoint-url=http://localhost:4566 dynamodb scan --table-name dev-schemas
+```

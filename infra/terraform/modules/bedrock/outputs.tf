@@ -5,7 +5,7 @@ output "model_arn" {
 
 output "available_models" {
   description = "List of available foundation models from the provider"
-  value       = data.aws_bedrock_foundation_models.available.model_summaries
+  value       = var.skip_model_validation ? [] : data.aws_bedrock_foundation_models.available[0].model_summaries
 }
 
 output "log_group_name" {

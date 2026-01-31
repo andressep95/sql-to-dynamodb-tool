@@ -59,6 +59,12 @@ variable "lambda_role_name" {
   default     = null
 }
 
+variable "skip_model_validation" {
+  description = "Skip Bedrock API calls for model validation (required for LocalStack)"
+  type        = bool
+  default     = false
+}
+
 variable "tags" {
   description = "Tags to apply to resources"
   type        = map(string)
