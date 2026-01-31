@@ -148,6 +148,7 @@ module "lambda_components" {
   sqs_queue_url       = module.conversion_queue.queue_url
   sqs_queue_arn       = module.conversion_queue.queue_arn
   sqs_endpoint        = var.use_localstack ? var.localstack_lambda_endpoint : ""
+  sqs_dlq_arn         = module.conversion_queue.dlq_arn
   use_mock_bedrock    = var.use_localstack
 }
 
