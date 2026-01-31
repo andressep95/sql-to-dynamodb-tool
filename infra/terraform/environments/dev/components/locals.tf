@@ -32,5 +32,15 @@ locals {
       reserved_concurrent_executions = 5
       log_retention_days             = 30
     }
+
+    dlq_handler = {
+      description                    = "dlq_handler"
+      use_case                       = "UC-dlq_handler-001"
+      api_operation                  = "dlq_handler"
+      memory_size                    = 128
+      timeout                        = 30
+      reserved_concurrent_executions = 5
+      log_retention_days             = 30
+    }
   }
 }

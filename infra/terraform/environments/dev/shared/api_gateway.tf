@@ -17,7 +17,7 @@ module "api_gateway" {
 
   # Routes configuration
   routes = {
-    "POST /api/v1/schemas"     = {}
+    "POST /api/v1/schemas"     = { lambda_arn = var.lambda_function_arn, lambda_name = var.lambda_function_name }
     "GET /api/v1/schemas"      = { lambda_arn = var.query_handler_function_arn, lambda_name = var.query_handler_function_name }
     "GET /api/v1/schemas/{id}" = { lambda_arn = var.query_handler_function_arn, lambda_name = var.query_handler_function_name }
   }

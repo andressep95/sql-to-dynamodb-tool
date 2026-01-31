@@ -48,6 +48,12 @@ variable "sqs_endpoint" {
   default     = ""
 }
 
+variable "sqs_dlq_arn" {
+  description = "ARN of the SQS dead-letter queue"
+  type        = string
+  default     = ""
+}
+
 variable "use_mock_bedrock" {
   description = "Use mock Bedrock responses (for LocalStack)"
   type        = bool
