@@ -38,3 +38,14 @@ output "environment_variables" {
   value       = module.process_handler.environment_variables
 }
 
+# conversion_worker Lambda outputs
+output "worker_function_name" {
+  description = "Name of the conversion worker Lambda function"
+  value       = module.conversion_worker.function_name
+}
+
+output "worker_function_arn" {
+  description = "ARN of the conversion worker Lambda function"
+  value       = module.conversion_worker.function_arn
+}
+

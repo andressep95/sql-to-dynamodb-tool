@@ -86,7 +86,12 @@ func handleValidateSQL(ctx context.Context, req events.APIGatewayProxyRequest) (
 		})
 	}
 
-	// 6. Retornar 202 Accepted
+	// 6. Send to SQS for async processing (non-blocking)
+	if err := SendToQueue(ctx, record); err != nil {
+		log.Printf("WARN: Failed to send to SQS (non-blocking): %v", err)
+	}
+
+	// 7. Retornar 202 Accepted
 	return jsonResponse(202, map[string]interface{}{
 		"conversionId": record.ConversionID,
 		"status":       record.Status,
@@ -108,5 +113,6 @@ func jsonResponse(statusCode int, body interface{}) (events.APIGatewayProxyRespo
 
 func main() {
 	initDynamoClient()
+	initSQSClient()
 	lambda.Start(handler)
 }

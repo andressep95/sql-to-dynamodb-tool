@@ -44,7 +44,8 @@ resource "aws_iam_role_policy" "lambda_dynamodb_write" {
       {
         Effect = "Allow"
         Action = [
-          "dynamodb:PutItem"
+          "dynamodb:PutItem",
+          "dynamodb:UpdateItem"
         ]
         Resource = [
           module.schemas_table.table_arn

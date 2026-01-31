@@ -48,6 +48,12 @@ variable "lambda_role_name" {
   type        = string
 }
 
+# SQS
+variable "sqs_queue_arn" {
+  description = "ARN of the SQS conversion queue (for IAM policies)"
+  type        = string
+}
+
 # DynamoDB
 variable "schemas_table_name" {
   description = "Name for the schemas DynamoDB table"

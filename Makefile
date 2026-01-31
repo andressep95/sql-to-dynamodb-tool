@@ -1,12 +1,19 @@
 .PHONY: lambda backend localstack localstack-destroy prod prod-destroy 
 
 lambda:
-	@echo "🔨 Building diagrams Lambda..."
-	cd lambda/diagrams && \
-	GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -tags lambda.norpc -o bootstrap . && \
-	zip -q function.zip bootstrap && \
-	rm bootstrap
-	@echo "✅ diagrams built"
+	@echo "🔨 Building all Lambdas..."
+	@for dir in lambda/*; do \
+		if [ -f $$dir/go.mod ]; then \
+			echo "➡️  Building $$(basename $$dir)"; \
+			cd $$dir && \
+			GOOS=linux GOARCH=arm64 CGO_ENABLED=0 \
+			go build -tags lambda.norpc -o bootstrap . && \
+			zip -q function.zip bootstrap && \
+			rm bootstrap && \
+			cd - > /dev/null; \
+			echo "✅ $$(basename $$dir) built"; \
+		fi \
+	done
 
 ## SOLO PARA DESARROLLO
 localstack:
