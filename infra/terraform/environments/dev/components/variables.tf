@@ -47,3 +47,9 @@ variable "sqs_endpoint" {
   type        = string
   default     = ""
 }
+
+variable "use_mock_bedrock" {
+  description = "Use mock Bedrock responses (for LocalStack)"
+  type        = bool
+  default     = true
+}

@@ -38,13 +38,28 @@ func processMessage(ctx context.Context, record events.SQSMessage) error {
 		return err
 	}
 
-	// TODO: Invoke Bedrock for actual conversion
-	log.Printf("[%s] Bedrock conversion placeholder - not implemented yet", msg.ConversionID)
+	// Invoke Bedrock for conversion
+	result, err := InvokeConversion(ctx, msg.SQLContent, msg.OptimizationType)
+	if err != nil {
+		log.Printf("[%s] Bedrock conversion failed: %v", msg.ConversionID, err)
+		if updateErr := UpdateStatusToFailed(ctx, msg.ConversionID, err.Error()); updateErr != nil {
+			log.Printf("[%s] Failed to update status to FAILED: %v", msg.ConversionID, updateErr)
+		}
+		return nil // Don't retry — already marked as FAILED
+	}
 
+	// Store result in DynamoDB
+	if err := UpdateStatusToCompleted(ctx, msg.ConversionID, result); err != nil {
+		log.Printf("[%s] Failed to update status to COMPLETED: %v", msg.ConversionID, err)
+		return err
+	}
+
+	log.Printf("[%s] Conversion completed successfully", msg.ConversionID)
 	return nil
 }
 
 func main() {
 	initDynamoClient()
+	initBedrockClient()
 	lambda.Start(handler)
 }

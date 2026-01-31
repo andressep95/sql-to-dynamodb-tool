@@ -24,6 +24,9 @@ module "conversion_worker" {
     DYNAMODB_ENDPOINT   = var.dynamodb_endpoint
     SQS_QUEUE_URL       = var.sqs_queue_url
     SQS_ENDPOINT        = var.sqs_endpoint
+    BEDROCK_MODEL_ID    = "anthropic.claude-sonnet-4-20250514"
+    USE_MOCK_BEDROCK    = tostring(var.use_mock_bedrock)
+    BEDROCK_ENDPOINT    = ""
   }
 
   # Logging
