@@ -118,6 +118,25 @@ resource "aws_iam_role" "lambda" {
   tags = local.common_tags
 }
 
+# ============================================
+# SQS (Conversion Queue) - instantiated at root
+# to avoid circular dependency between components and shared
+# ============================================
+
+module "conversion_queue" {
+  source = "../../modules/sqs"
+
+  queue_name = "${var.environment}-conversion-queue"
+  dlq_name   = "${var.environment}-conversion-dlq"
+
+  visibility_timeout_seconds = 180
+  message_retention_seconds  = 345600 # 4 days
+  receive_wait_time_seconds  = 20     # Long polling
+  max_receive_count          = 3
+
+  tags = local.common_tags
+}
+
 module "lambda_components" {
   source      = "./components"
   environment = var.environment
@@ -126,10 +145,13 @@ module "lambda_components" {
   role_arn            = aws_iam_role.lambda.arn
   dynamodb_table_name = local.schemas_table_name
   dynamodb_endpoint   = var.use_localstack ? var.localstack_lambda_endpoint : ""
+  sqs_queue_url       = module.conversion_queue.queue_url
+  sqs_queue_arn       = module.conversion_queue.queue_arn
+  sqs_endpoint        = var.use_localstack ? var.localstack_lambda_endpoint : ""
 }
 
 # ============================================
-# Shared Resources (API Gateway)
+# Shared Resources (API Gateway, DynamoDB, IAM)
 # ============================================
 
 module "shared" {
@@ -152,4 +174,7 @@ module "shared" {
 
   # DynamoDB
   schemas_table_name = local.schemas_table_name
+
+  # SQS ARN for IAM policies
+  sqs_queue_arn = module.conversion_queue.queue_arn
 }

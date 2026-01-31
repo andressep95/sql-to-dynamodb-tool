@@ -12,5 +12,15 @@ locals {
       reserved_concurrent_executions = 100
       log_retention_days             = 30
     }
+
+    conversion_worker = {
+      description                    = "conversion_worker"
+      use_case                       = "UC-conversion_worker-001"
+      api_operation                  = "conversion_worker"
+      memory_size                    = 256
+      timeout                        = 120
+      reserved_concurrent_executions = 5
+      log_retention_days             = 30
+    }
   }
 }

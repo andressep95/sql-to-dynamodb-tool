@@ -29,3 +29,21 @@ variable "dynamodb_endpoint" {
   type        = string
   default     = ""
 }
+
+variable "sqs_queue_url" {
+  description = "URL of the SQS conversion queue"
+  type        = string
+  default     = ""
+}
+
+variable "sqs_queue_arn" {
+  description = "ARN of the SQS conversion queue"
+  type        = string
+  default     = ""
+}
+
+variable "sqs_endpoint" {
+  description = "SQS endpoint URL (for LocalStack)"
+  type        = string
+  default     = ""
+}

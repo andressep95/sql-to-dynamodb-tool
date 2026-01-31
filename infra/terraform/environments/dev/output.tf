@@ -54,3 +54,25 @@ output "schemas_table_arn" {
   description = "ARN of the schemas DynamoDB table"
   value       = module.shared.schemas_table_arn
 }
+
+# SQS outputs
+output "sqs_queue_url" {
+  description = "URL of the conversion SQS queue"
+  value       = module.conversion_queue.queue_url
+}
+
+output "sqs_queue_arn" {
+  description = "ARN of the conversion SQS queue"
+  value       = module.conversion_queue.queue_arn
+}
+
+# Conversion Worker outputs
+output "worker_function_name" {
+  description = "Name of the conversion worker Lambda"
+  value       = module.lambda_components.worker_function_name
+}
+
+output "worker_function_arn" {
+  description = "ARN of the conversion worker Lambda"
+  value       = module.lambda_components.worker_function_arn
+}
