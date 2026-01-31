@@ -33,6 +33,12 @@ variable "localstack_endpoint" {
   default     = "http://localhost:4566"
 }
 
+variable "localstack_lambda_endpoint" {
+  description = "LocalStack endpoint URL reachable from inside Lambda containers"
+  type        = string
+  default     = "http://host.docker.internal:4566"
+}
+
 # Dev-specific configuration
 variable "enable_deletion_protection" {
   description = "Enable deletion protection for resources"
@@ -49,6 +55,13 @@ variable "log_level" {
     condition     = contains(["DEBUG", "INFO", "WARN", "ERROR"], var.log_level)
     error_message = "Log level must be DEBUG, INFO, WARN, or ERROR"
   }
+}
+
+# DynamoDB table names
+variable "schemas_table_name" {
+  description = "Name for the schemas DynamoDB table"
+  type        = string
+  default     = "schemas"
 }
 
 # Common tags

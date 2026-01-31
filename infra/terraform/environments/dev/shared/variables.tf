@@ -41,3 +41,15 @@ variable "stage_name" {
   type        = string
   default     = "dev"
 }
+
+# Lambda IAM role
+variable "lambda_role_name" {
+  description = "Name of the Lambda IAM role for policy attachments"
+  type        = string
+}
+
+# DynamoDB
+variable "schemas_table_name" {
+  description = "Name for the schemas DynamoDB table"
+  type        = string
+}

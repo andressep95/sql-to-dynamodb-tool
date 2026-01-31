@@ -14,6 +14,12 @@ module "process_handler" {
   timeout                        = local.lambda_configs["process_handler"].timeout
   reserved_concurrent_executions = local.lambda_configs["process_handler"].reserved_concurrent_executions
 
+  # Environment variables
+  environment_variables = {
+    DYNAMODB_TABLE_NAME = var.dynamodb_table_name
+    DYNAMODB_ENDPOINT   = var.dynamodb_endpoint
+  }
+
   # Logging
   log_retention_days = local.lambda_configs["process_handler"].log_retention_days
   create_log_group   = false # Disabled for LocalStack
