@@ -1,4 +1,34 @@
-.PHONY: lambda backend localstack localstack-destroy prod prod-destroy 
+.PHONY: lambda backend localstack localstack-destroy prod prod-destroy docker-up docker-down
+
+docker-up:
+	@echo "🐳 Starting LocalStack Pro..."
+	@if [ -z "$$LOCALSTACK_AUTH_TOKEN" ] && [ -f .env ]; then \
+		export $$(grep -v '^#' .env | xargs) && \
+		docker-compose up -d; \
+	elif [ -n "$$LOCALSTACK_AUTH_TOKEN" ]; then \
+		docker-compose up -d; \
+	else \
+		echo "❌ LOCALSTACK_AUTH_TOKEN not found. Set it in .env or export it."; \
+		exit 1; \
+	fi
+	@echo "⏳ Waiting for LocalStack to be ready..."
+	@for i in 1 2 3 4 5 6 7 8 9 10; do \
+		if docker logs localstack-main 2>&1 | grep -q "Ready."; then \
+			break; \
+		fi; \
+		sleep 3; \
+	done
+	@docker logs localstack-main 2>&1 | grep -q "Successfully activated" && \
+		echo "✅ LocalStack Pro activated" || \
+		echo "⚠️  License not activated - check your AUTH_TOKEN"
+	@docker logs localstack-main 2>&1 | grep -q "Ready." && \
+		echo "✅ LocalStack is ready" || \
+		(echo "❌ LocalStack failed to start"; exit 1)
+
+docker-down:
+	@echo "🛑 Stopping LocalStack..."
+	docker-compose down
+	@echo "✅ LocalStack stopped"
 
 lambda:
 	@echo "🔨 Building all Lambdas..."
@@ -29,7 +59,6 @@ localstack-destroy:
 	@echo "✅ LocalStack destroyed"
 
 ## SOLO PARA PRODUCCION
-
 backend:
 	@echo "🔨 Initializing backend..."
 	cd infra/terraform/backend && \

@@ -83,6 +83,7 @@ web/.env.*
 ########################################
 .env
 .env.*
+*.env
 *.secret
 *.secrets
 *.credentials
