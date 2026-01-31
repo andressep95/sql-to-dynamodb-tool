@@ -105,7 +105,7 @@ resource "aws_api_gateway_integration" "routes" {
 
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
-  uri                     = "arn:aws:apigateway:${var.region}:lambda:path/2015-03-31/functions/${var.lambda_arn}/invocations"
+  uri                     = "arn:aws:apigateway:${var.region}:lambda:path/2015-03-31/functions/${coalesce(var.routes[each.key].lambda_arn, var.lambda_arn)}/invocations"
 }
 
 # ============================================
@@ -141,12 +141,23 @@ resource "aws_api_gateway_stage" "this" {
 }
 
 # ============================================
-# Lambda Permission
+# Lambda Permissions (one per unique lambda)
 # ============================================
+locals {
+  unique_lambdas = {
+    for name in distinct([
+      for route_key, route_config in var.routes :
+      coalesce(route_config.lambda_name, var.lambda_name)
+    ]) : name => name
+  }
+}
+
 resource "aws_lambda_permission" "apigw" {
-  statement_id  = "AllowAPIGatewayInvoke"
+  for_each = local.unique_lambdas
+
+  statement_id  = "AllowAPIGatewayInvoke-${each.key}"
   action        = "lambda:InvokeFunction"
-  function_name = var.lambda_name
+  function_name = each.value
   principal     = "apigateway.amazonaws.com"
 
   source_arn = "${aws_api_gateway_rest_api.this.execution_arn}/*/*"

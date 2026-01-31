@@ -38,6 +38,17 @@ output "environment_variables" {
   value       = module.process_handler.environment_variables
 }
 
+# query_handler Lambda outputs
+output "query_function_name" {
+  description = "Name of the query handler Lambda function"
+  value       = module.query_handler.function_name
+}
+
+output "query_function_arn" {
+  description = "ARN of the query handler Lambda function"
+  value       = module.query_handler.function_arn
+}
+
 # conversion_worker Lambda outputs
 output "worker_function_name" {
   description = "Name of the conversion worker Lambda function"
