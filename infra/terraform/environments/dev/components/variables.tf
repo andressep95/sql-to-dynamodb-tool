@@ -16,5 +16,16 @@ variable "common_tags" {
 variable "role_arn" {
   description = "ARN of the IAM role for Lambda functions"
   type        = string
-  default     = "arn:aws:iam::000000000000:role/lambda-role" # LocalStack dummy
+}
+
+variable "dynamodb_table_name" {
+  description = "Name of the DynamoDB schemas table"
+  type        = string
+  default     = ""
+}
+
+variable "dynamodb_endpoint" {
+  description = "DynamoDB endpoint URL (for LocalStack)"
+  type        = string
+  default     = ""
 }

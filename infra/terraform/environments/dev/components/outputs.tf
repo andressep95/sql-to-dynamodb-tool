@@ -37,3 +37,4 @@ output "environment_variables" {
   description = "Environment variables of the Lambda function"
   value       = module.process_handler.environment_variables
 }
+

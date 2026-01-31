@@ -90,10 +90,42 @@ locals {
 # Lambda Components
 # ============================================
 
+locals {
+  schemas_table_name = "${var.environment}-${var.schemas_table_name}"
+  lambda_role_name   = "${local.project_name}-${local.environment}-lambda-role"
+}
+
+# ============================================
+# IAM Role for Lambda
+# ============================================
+
+resource "aws_iam_role" "lambda" {
+  name = local.lambda_role_name
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "lambda.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = local.common_tags
+}
+
 module "lambda_components" {
   source      = "./components"
   environment = var.environment
   common_tags = local.common_tags
+
+  role_arn            = aws_iam_role.lambda.arn
+  dynamodb_table_name = local.schemas_table_name
+  dynamodb_endpoint   = var.use_localstack ? var.localstack_lambda_endpoint : ""
 }
 
 # ============================================
@@ -114,4 +146,10 @@ module "shared" {
   # API Gateway config
   api_gateway_name = "${local.project_name}-api"
   stage_name       = var.environment
+
+  # Lambda IAM role for policy attachments
+  lambda_role_name = aws_iam_role.lambda.name
+
+  # DynamoDB
+  schemas_table_name = local.schemas_table_name
 }

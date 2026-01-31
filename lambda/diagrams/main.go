@@ -18,7 +18,7 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 
 	// POST /api/v1/schemas -> validar SQL
 	if method == "POST" && strings.HasSuffix(path, "/api/v1/schemas") {
-		return handleValidateSQL(req)
+		return handleValidateSQL(ctx, req)
 	}
 
 	// GET /api/v1/schemas -> health / info
@@ -35,7 +35,7 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 	})
 }
 
-func handleValidateSQL(req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func handleValidateSQL(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	// 1. Parsear body
 	var body ConvertRequest
 	if err := json.Unmarshal([]byte(req.Body), &body); err != nil {
@@ -76,12 +76,22 @@ func handleValidateSQL(req events.APIGatewayProxyRequest) (events.APIGatewayProx
 		})
 	}
 
-	// 5. Schema valido -> retornar resultado
-	return jsonResponse(200, map[string]interface{}{
-		"isValid":          true,
-		"tables":           result.Tables,
-		"warnings":         result.Warnings,
-		"optimizationType": body.OptimizationType,
+	// 5. Schema valido -> crear registro PENDING en DynamoDB
+	record, err := CreateConversionRecord(ctx, body.SQLContent, body.OptimizationType, len(result.Tables))
+	if err != nil {
+		log.Printf("ERROR: Failed to create DynamoDB record: %v", err)
+		return jsonResponse(500, ErrorResponse{
+			Error:   ErrInternalServerError,
+			Message: "Failed to create conversion",
+		})
+	}
+
+	// 6. Retornar 202 Accepted
+	return jsonResponse(202, map[string]interface{}{
+		"conversionId": record.ConversionID,
+		"status":       record.Status,
+		"createdAt":    record.CreatedAt,
+		"expiresAt":    record.ExpiresAt,
 	})
 }
 
@@ -97,5 +107,6 @@ func jsonResponse(statusCode int, body interface{}) (events.APIGatewayProxyRespo
 }
 
 func main() {
+	initDynamoClient()
 	lambda.Start(handler)
 }

@@ -43,3 +43,14 @@ output "api_gateway_endpoint" {
   description = "Invoke URL of the API Gateway"
   value       = module.shared.api_gateway_endpoint
 }
+
+# DynamoDB outputs
+output "schemas_table_name" {
+  description = "Name of the schemas DynamoDB table"
+  value       = module.shared.schemas_table_name
+}
+
+output "schemas_table_arn" {
+  description = "ARN of the schemas DynamoDB table"
+  value       = module.shared.schemas_table_arn
+}
