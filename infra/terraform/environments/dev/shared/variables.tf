@@ -29,6 +29,16 @@ variable "lambda_function_arn" {
   type        = string
 }
 
+variable "query_handler_function_name" {
+  description = "Name of the query handler Lambda function"
+  type        = string
+}
+
+variable "query_handler_function_arn" {
+  description = "ARN of the query handler Lambda function"
+  type        = string
+}
+
 # API Gateway configuration
 variable "api_gateway_name" {
   description = "Name for the API Gateway"

@@ -22,5 +22,15 @@ locals {
       reserved_concurrent_executions = 5
       log_retention_days             = 30
     }
+
+    query_handler = {
+      description                    = "query_handler"
+      use_case                       = "UC-query_handler-001"
+      api_operation                  = "query_handler"
+      memory_size                    = 256
+      timeout                        = 120
+      reserved_concurrent_executions = 5
+      log_retention_days             = 30
+    }
   }
 }

@@ -20,8 +20,11 @@ variable "lambda_invoke_arn" {
 }
 
 variable "routes" {
-  description = "Map of routes (route_key => {})"
-  type        = map(any)
+  description = "Map of routes (route_key => config)"
+  type = map(object({
+    lambda_arn  = optional(string)
+    lambda_name = optional(string)
+  }))
 
   default = {
     "GET /"     = {}

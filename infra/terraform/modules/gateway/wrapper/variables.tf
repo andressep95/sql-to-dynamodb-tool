@@ -27,6 +27,7 @@ variable "stage_name" {
 variable "lambda_name" {
   description = "Lambda function name"
   type        = string
+  default     = ""
 }
 
 # REST v1 usa ARN normal
@@ -44,9 +45,12 @@ variable "lambda_invoke_arn" {
 }
 
 variable "routes" {
-  description = "Routes for HTTP API v2"
-  type        = map(any)
-  default     = {}
+  description = "Routes configuration. Format: 'METHOD /path' => { lambda_arn?, lambda_name? }"
+  type = map(object({
+    lambda_arn  = optional(string)
+    lambda_name = optional(string)
+  }))
+  default = {}
 }
 
 variable "tags" {

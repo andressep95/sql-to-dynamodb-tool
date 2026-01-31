@@ -10,12 +10,14 @@ variable "region" {
 
 variable "lambda_arn" {
   type        = string
-  description = "ARN de la Lambda a integrar"
+  description = "ARN de la Lambda por defecto"
+  default     = ""
 }
 
 variable "lambda_name" {
   type        = string
-  description = "Nombre de la Lambda (para permisos)"
+  description = "Nombre de la Lambda por defecto (para permisos)"
+  default     = ""
 }
 
 variable "stage_name" {
@@ -24,8 +26,11 @@ variable "stage_name" {
 }
 
 variable "routes" {
-  description = "Map of routes (route_key => {}). Format: 'METHOD /path'"
-  type        = map(any)
+  description = "Map of routes (route_key => config). Format: 'METHOD /path' => { lambda_arn?, lambda_name? }"
+  type = map(object({
+    lambda_arn  = optional(string)
+    lambda_name = optional(string)
+  }))
 
   default = {
     "GET /" = {}
