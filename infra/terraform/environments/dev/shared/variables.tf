@@ -39,6 +39,16 @@ variable "query_handler_function_arn" {
   type        = string
 }
 
+variable "lambda_invoke_arn" {
+  description = "Invoke ARN of the process handler Lambda function"
+  type        = string
+}
+
+variable "query_handler_invoke_arn" {
+  description = "Invoke ARN of the query handler Lambda function"
+  type        = string
+}
+
 # API Gateway configuration
 variable "api_gateway_name" {
   description = "Name for the API Gateway"

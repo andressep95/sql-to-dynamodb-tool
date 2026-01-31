@@ -10,11 +10,10 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 )
 
-func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	log.Printf("Request: %s %s", req.HTTPMethod, req.Path)
-
-	path := req.Path
-	method := req.HTTPMethod
+func handler(ctx context.Context, req events.APIGatewayV2HTTPRequest) (V2Response, error) {
+	method := req.RequestContext.HTTP.Method
+	path := req.RequestContext.HTTP.Path
+	log.Printf("Request: %s %s", method, path)
 
 	// GET /api/v1/schemas/{id} -> obtener por ID
 	if method == "GET" && req.PathParameters["id"] != "" {
@@ -32,7 +31,7 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 	})
 }
 
-func handleGetByID(ctx context.Context, id string) (events.APIGatewayProxyResponse, error) {
+func handleGetByID(ctx context.Context, id string) (V2Response, error) {
 	record, err := GetConversionByID(ctx, id)
 	if err != nil {
 		log.Printf("ERROR: GetConversionByID failed: %v", err)
@@ -52,7 +51,7 @@ func handleGetByID(ctx context.Context, id string) (events.APIGatewayProxyRespon
 	return jsonResponse(200, record)
 }
 
-func handleListAll(ctx context.Context) (events.APIGatewayProxyResponse, error) {
+func handleListAll(ctx context.Context) (V2Response, error) {
 	records, err := ListConversions(ctx)
 	if err != nil {
 		log.Printf("ERROR: ListConversions failed: %v", err)
@@ -68,9 +67,9 @@ func handleListAll(ctx context.Context) (events.APIGatewayProxyResponse, error) 
 	})
 }
 
-func jsonResponse(statusCode int, body interface{}) (events.APIGatewayProxyResponse, error) {
+func jsonResponse(statusCode int, body interface{}) (V2Response, error) {
 	b, _ := json.Marshal(body)
-	return events.APIGatewayProxyResponse{
+	return V2Response{
 		StatusCode: statusCode,
 		Headers: map[string]string{
 			"Content-Type": "application/json",

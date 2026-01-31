@@ -45,10 +45,11 @@ variable "lambda_invoke_arn" {
 }
 
 variable "routes" {
-  description = "Routes configuration. Format: 'METHOD /path' => { lambda_arn?, lambda_name? }"
+  description = "Routes configuration. Format: 'METHOD /path' => { lambda_arn?, lambda_name?, lambda_invoke_arn? }"
   type = map(object({
-    lambda_arn  = optional(string)
-    lambda_name = optional(string)
+    lambda_arn        = optional(string)
+    lambda_name       = optional(string)
+    lambda_invoke_arn = optional(string)
   }))
   default = {}
 }

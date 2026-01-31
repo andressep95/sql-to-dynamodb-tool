@@ -49,6 +49,11 @@ output "query_function_arn" {
   value       = module.query_handler.function_arn
 }
 
+output "query_invoke_arn" {
+  description = "Invoke ARN of the query handler Lambda function"
+  value       = module.query_handler.invoke_arn
+}
+
 # conversion_worker Lambda outputs
 output "worker_function_name" {
   description = "Name of the conversion worker Lambda function"

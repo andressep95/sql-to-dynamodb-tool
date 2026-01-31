@@ -1,3 +1,22 @@
+locals {
+  # Build a map of unique lambda invoke ARNs to create one integration per lambda
+  route_lambdas = {
+    for key, route in var.routes : key => {
+      invoke_arn = coalesce(lookup(route, "lambda_invoke_arn", null), var.lambda_invoke_arn)
+      name       = coalesce(lookup(route, "lambda_name", null), var.lambda_name)
+    }
+  }
+
+  # Deduplicate integrations by lambda name
+  unique_lambdas = {
+    for key, cfg in local.route_lambdas : cfg.name => cfg...
+  }
+  # Flatten: take first entry from each group
+  unique_lambdas_flat = {
+    for name, cfgs in local.unique_lambdas : name => cfgs[0]
+  }
+}
+
 resource "aws_apigatewayv2_api" "this" {
   name          = var.name
   protocol_type = "HTTP"
@@ -11,22 +30,24 @@ resource "aws_apigatewayv2_api" "this" {
   tags = var.tags
 }
 
-# Lambda integration (proxy)
+# One integration per unique Lambda
 resource "aws_apigatewayv2_integration" "lambda" {
+  for_each = local.unique_lambdas_flat
+
   api_id = aws_apigatewayv2_api.this.id
 
   integration_type       = "AWS_PROXY"
-  integration_uri        = var.lambda_invoke_arn
+  integration_uri        = each.value.invoke_arn
   payload_format_version = "2.0"
 }
 
-# Rutas (GET /, POST /api, etc.)
+# Routes pointing to the correct integration
 resource "aws_apigatewayv2_route" "this" {
   for_each = var.routes
 
   api_id    = aws_apigatewayv2_api.this.id
   route_key = each.key
-  target    = "integrations/${aws_apigatewayv2_integration.lambda.id}"
+  target    = "integrations/${aws_apigatewayv2_integration.lambda[local.route_lambdas[each.key].name].id}"
 }
 
 # Stage
@@ -39,11 +60,13 @@ resource "aws_apigatewayv2_stage" "this" {
   tags = var.tags
 }
 
-# Permiso Lambda
+# One permission per unique Lambda
 resource "aws_lambda_permission" "apigw" {
-  statement_id  = "AllowHttpApiInvoke"
+  for_each = local.unique_lambdas_flat
+
+  statement_id  = "AllowHttpApiInvoke-${each.key}"
   action        = "lambda:InvokeFunction"
-  function_name = var.lambda_name
+  function_name = each.value.name
   principal     = "apigateway.amazonaws.com"
 
   source_arn = "${aws_apigatewayv2_api.this.execution_arn}/*/*"

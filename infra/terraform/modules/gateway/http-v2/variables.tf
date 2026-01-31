@@ -10,20 +10,21 @@ variable "stage_name" {
 }
 
 variable "lambda_name" {
-  description = "Lambda function name"
+  description = "Default Lambda function name"
   type        = string
 }
 
 variable "lambda_invoke_arn" {
-  description = "Lambda invoke ARN"
+  description = "Default Lambda invoke ARN"
   type        = string
 }
 
 variable "routes" {
-  description = "Map of routes (route_key => config)"
+  description = "Map of routes (route_key => config). Each route can override lambda_invoke_arn and lambda_name."
   type = map(object({
-    lambda_arn  = optional(string)
-    lambda_name = optional(string)
+    lambda_arn        = optional(string)
+    lambda_name       = optional(string)
+    lambda_invoke_arn = optional(string)
   }))
 
   default = {

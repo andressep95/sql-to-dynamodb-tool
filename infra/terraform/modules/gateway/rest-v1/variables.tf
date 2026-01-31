@@ -28,8 +28,9 @@ variable "stage_name" {
 variable "routes" {
   description = "Map of routes (route_key => config). Format: 'METHOD /path' => { lambda_arn?, lambda_name? }"
   type = map(object({
-    lambda_arn  = optional(string)
-    lambda_name = optional(string)
+    lambda_arn        = optional(string)
+    lambda_name       = optional(string)
+    lambda_invoke_arn = optional(string)
   }))
 
   default = {

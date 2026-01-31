@@ -166,10 +166,12 @@ module "shared" {
   # Lambda integration from components
   lambda_function_name = module.lambda_components.function_name
   lambda_function_arn  = module.lambda_components.function_arn
+  lambda_invoke_arn    = module.lambda_components.invoke_arn
 
   # Query handler Lambda
   query_handler_function_name = module.lambda_components.query_function_name
   query_handler_function_arn  = module.lambda_components.query_function_arn
+  query_handler_invoke_arn    = module.lambda_components.query_invoke_arn
 
   # API Gateway config
   api_gateway_name = "${local.project_name}-api"

@@ -10,11 +10,10 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 )
 
-func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	log.Printf("Request: %s %s", req.HTTPMethod, req.Path)
-
-	path := req.Path
-	method := req.HTTPMethod
+func handler(ctx context.Context, req events.APIGatewayV2HTTPRequest) (V2Response, error) {
+	method := req.RequestContext.HTTP.Method
+	path := req.RequestContext.HTTP.Path
+	log.Printf("Request: %s %s", method, path)
 
 	// POST /api/v1/schemas -> validar SQL
 	if method == "POST" && strings.HasSuffix(path, "/api/v1/schemas") {
@@ -35,7 +34,7 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 	})
 }
 
-func handleValidateSQL(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func handleValidateSQL(ctx context.Context, req events.APIGatewayV2HTTPRequest) (V2Response, error) {
 	// 1. Parsear body
 	var body ConvertRequest
 	if err := json.Unmarshal([]byte(req.Body), &body); err != nil {
@@ -100,9 +99,9 @@ func handleValidateSQL(ctx context.Context, req events.APIGatewayProxyRequest) (
 	})
 }
 
-func jsonResponse(statusCode int, body interface{}) (events.APIGatewayProxyResponse, error) {
+func jsonResponse(statusCode int, body interface{}) (V2Response, error) {
 	b, _ := json.Marshal(body)
-	return events.APIGatewayProxyResponse{
+	return V2Response{
 		StatusCode: statusCode,
 		Headers: map[string]string{
 			"Content-Type": "application/json",

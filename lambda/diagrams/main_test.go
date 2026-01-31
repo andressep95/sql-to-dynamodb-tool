@@ -8,8 +8,20 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 )
 
+func v2Request(method, path, body string) events.APIGatewayV2HTTPRequest {
+	return events.APIGatewayV2HTTPRequest{
+		RequestContext: events.APIGatewayV2HTTPRequestContext{
+			HTTP: events.APIGatewayV2HTTPRequestContextHTTPDescription{
+				Method: method,
+				Path:   path,
+			},
+		},
+		Body: body,
+	}
+}
+
 func TestHandler_NotFound(t *testing.T) {
-	resp, err := handler(context.Background(), events.APIGatewayProxyRequest{})
+	resp, err := handler(context.Background(), v2Request("", "", ""))
 	if err != nil {
 		t.Fatalf("handler returned error: %v", err)
 	}
@@ -19,10 +31,7 @@ func TestHandler_NotFound(t *testing.T) {
 }
 
 func TestHandler_GET_Schemas(t *testing.T) {
-	resp, err := handler(context.Background(), events.APIGatewayProxyRequest{
-		HTTPMethod: "GET",
-		Path:       "/api/v1/schemas",
-	})
+	resp, err := handler(context.Background(), v2Request("GET", "/api/v1/schemas", ""))
 	if err != nil {
 		t.Fatalf("handler returned error: %v", err)
 	}
@@ -41,11 +50,7 @@ func TestHandler_POST_ValidSQL(t *testing.T) {
 		OptimizationType: "balanced",
 	})
 
-	resp, err := handler(context.Background(), events.APIGatewayProxyRequest{
-		HTTPMethod: "POST",
-		Path:       "/api/v1/schemas",
-		Body:       string(body),
-	})
+	resp, err := handler(context.Background(), v2Request("POST", "/api/v1/schemas", string(body)))
 	if err != nil {
 		t.Fatalf("handler returned error: %v", err)
 	}
@@ -65,11 +70,7 @@ func TestHandler_POST_InvalidSQL(t *testing.T) {
 		SQLContent: `SELECT * FROM users;`,
 	})
 
-	resp, err := handler(context.Background(), events.APIGatewayProxyRequest{
-		HTTPMethod: "POST",
-		Path:       "/api/v1/schemas",
-		Body:       string(body),
-	})
+	resp, err := handler(context.Background(), v2Request("POST", "/api/v1/schemas", string(body)))
 	if err != nil {
 		t.Fatalf("handler returned error: %v", err)
 	}
@@ -87,11 +88,7 @@ func TestHandler_POST_InvalidSQL(t *testing.T) {
 func TestHandler_POST_EmptyBody(t *testing.T) {
 	body, _ := json.Marshal(ConvertRequest{SQLContent: ""})
 
-	resp, err := handler(context.Background(), events.APIGatewayProxyRequest{
-		HTTPMethod: "POST",
-		Path:       "/api/v1/schemas",
-		Body:       string(body),
-	})
+	resp, err := handler(context.Background(), v2Request("POST", "/api/v1/schemas", string(body)))
 	if err != nil {
 		t.Fatalf("handler returned error: %v", err)
 	}
@@ -112,11 +109,7 @@ func TestHandler_POST_InvalidOptimizationType(t *testing.T) {
 		OptimizationType: "super_fast",
 	})
 
-	resp, err := handler(context.Background(), events.APIGatewayProxyRequest{
-		HTTPMethod: "POST",
-		Path:       "/api/v1/schemas",
-		Body:       string(body),
-	})
+	resp, err := handler(context.Background(), v2Request("POST", "/api/v1/schemas", string(body)))
 	if err != nil {
 		t.Fatalf("handler returned error: %v", err)
 	}
@@ -132,11 +125,7 @@ func TestHandler_POST_InvalidOptimizationType(t *testing.T) {
 }
 
 func TestHandler_POST_InvalidJSON(t *testing.T) {
-	resp, err := handler(context.Background(), events.APIGatewayProxyRequest{
-		HTTPMethod: "POST",
-		Path:       "/api/v1/schemas",
-		Body:       "not json",
-	})
+	resp, err := handler(context.Background(), v2Request("POST", "/api/v1/schemas", "not json"))
 	if err != nil {
 		t.Fatalf("handler returned error: %v", err)
 	}
