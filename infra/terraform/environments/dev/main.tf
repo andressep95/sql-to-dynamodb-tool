@@ -149,7 +149,10 @@ module "lambda_components" {
   sqs_queue_arn       = module.conversion_queue.queue_arn
   sqs_endpoint        = var.use_localstack ? var.localstack_lambda_endpoint : ""
   sqs_dlq_arn         = module.conversion_queue.dlq_arn
-  use_mock_bedrock    = var.use_localstack
+  use_mock_bedrock      = var.use_mock_bedrock
+  aws_access_key_id     = var.aws_access_key_id
+  aws_secret_access_key = var.aws_secret_access_key
+  aws_region            = var.aws_region
 }
 
 # ============================================

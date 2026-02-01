@@ -6,7 +6,7 @@ module "bedrock" {
   source = "../../../modules/bedrock"
 
   model_name     = "claude-sonnet-4"
-  model_id       = "anthropic.claude-sonnet-4-20250514"
+  model_id       = "anthropic.claude-sonnet-4-20250514-v1:0"
   model_provider = "anthropic"
 
   enable_logging        = false # LocalStack does not support Bedrock logging

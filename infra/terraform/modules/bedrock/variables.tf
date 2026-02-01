@@ -8,8 +8,8 @@ variable "model_id" {
   type        = string
   
   validation {
-    condition = can(regex("^[a-zA-Z0-9.-]+$", var.model_id))
-    error_message = "Model ID must contain only alphanumeric characters, dots, and hyphens."
+    condition = can(regex("^[a-zA-Z0-9.:-]+$", var.model_id))
+    error_message = "Model ID must contain only alphanumeric characters, dots, hyphens, and colons."
   }
 }
 

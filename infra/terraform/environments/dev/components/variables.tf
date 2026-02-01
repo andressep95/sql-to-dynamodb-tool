@@ -57,5 +57,25 @@ variable "sqs_dlq_arn" {
 variable "use_mock_bedrock" {
   description = "Use mock Bedrock responses (for LocalStack)"
   type        = bool
-  default     = true
+  default     = false
+}
+
+variable "aws_access_key_id" {
+  description = "AWS Access Key ID for real Bedrock"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "aws_secret_access_key" {
+  description = "AWS Secret Access Key for real Bedrock"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "aws_region" {
+  description = "AWS region for Bedrock"
+  type        = string
+  default     = "us-east-1"
 }

@@ -39,6 +39,26 @@ variable "localstack_lambda_endpoint" {
   default     = "http://host.docker.internal:4566"
 }
 
+variable "use_mock_bedrock" {
+  description = "Use mock Bedrock responses instead of real AWS Bedrock"
+  type        = bool
+  default     = false
+}
+
+variable "aws_access_key_id" {
+  description = "AWS Access Key ID for real AWS services (Bedrock)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "aws_secret_access_key" {
+  description = "AWS Secret Access Key for real AWS services (Bedrock)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 # Dev-specific configuration
 variable "enable_deletion_protection" {
   description = "Enable deletion protection for resources"

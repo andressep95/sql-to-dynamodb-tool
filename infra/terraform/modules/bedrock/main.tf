@@ -46,11 +46,17 @@ resource "aws_iam_role_policy" "bedrock_access" {
           "bedrock:InvokeModel",
           "bedrock:InvokeModelWithResponseStream"
         ]
-        Resource = "arn:aws:bedrock:${data.aws_region.current.name}::foundation-model/${var.model_id}"
+        Resource = [
+          "arn:aws:bedrock:us-east-1:${data.aws_caller_identity.current.account_id}:inference-profile/${var.model_id}",
+          "arn:aws:bedrock:us-west-2:${data.aws_caller_identity.current.account_id}:inference-profile/${var.model_id}",
+          "arn:aws:bedrock:us-east-2:${data.aws_caller_identity.current.account_id}:inference-profile/${var.model_id}",
+          "arn:aws:bedrock:*::foundation-model/anthropic.claude-3-*"
+        ]
       }
     ]
   })
 }
 
-# Data source para región actual
+# Data sources
 data "aws_region" "current" {}
+data "aws_caller_identity" "current" {}

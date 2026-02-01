@@ -9,6 +9,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/bedrockruntime"
 )
 
@@ -20,7 +21,22 @@ func initBedrockClient() {
 		return
 	}
 
-	cfg, err := config.LoadDefaultConfig(context.Background())
+	var opts []func(*config.LoadOptions) error
+
+	// Use dedicated Bedrock credentials if available (needed in LocalStack
+	// where AWS_ACCESS_KEY_ID is overwritten with dummy values).
+	if ak := os.Getenv("BEDROCK_AWS_ACCESS_KEY_ID"); ak != "" {
+		sk := os.Getenv("BEDROCK_AWS_SECRET_ACCESS_KEY")
+		opts = append(opts, config.WithCredentialsProvider(
+			credentials.NewStaticCredentialsProvider(ak, sk, ""),
+		))
+	}
+
+	if region := os.Getenv("BEDROCK_AWS_REGION"); region != "" {
+		opts = append(opts, config.WithRegion(region))
+	}
+
+	cfg, err := config.LoadDefaultConfig(context.Background(), opts...)
 	if err != nil {
 		log.Printf("WARN: Failed to load AWS config for Bedrock: %v", err)
 		return
@@ -50,6 +66,9 @@ func InvokeConversion(ctx context.Context, sqlContent, optimizationType string) 
 	if modelID == "" {
 		return "", fmt.Errorf("BEDROCK_MODEL_ID not set")
 	}
+
+	// Debug: Log the model ID being used
+	log.Printf("[DEBUG] Using Bedrock Model ID: %s", modelID)
 
 	prompt := fmt.Sprintf(`Analiza el siguiente esquema SQL y conviértelo a un diseño óptimo de DynamoDB.
 

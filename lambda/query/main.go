@@ -48,6 +48,9 @@ func handleGetByID(ctx context.Context, id string) (V2Response, error) {
 		})
 	}
 
+	// Parse noSqlSchema from string to JSON object
+	parseNoSqlSchema(record)
+
 	return jsonResponse(200, record)
 }
 
@@ -59,6 +62,11 @@ func handleListAll(ctx context.Context) (V2Response, error) {
 			"error":   "INTERNAL_SERVER_ERROR",
 			"message": "Failed to list conversions",
 		})
+	}
+
+	// Parse noSqlSchema for all records
+	for _, record := range records {
+		parseNoSqlSchema(record)
 	}
 
 	return jsonResponse(200, map[string]interface{}{
@@ -81,4 +89,16 @@ func jsonResponse(statusCode int, body interface{}) (V2Response, error) {
 func main() {
 	initDynamoClient()
 	lambda.Start(handler)
+}
+
+// parseNoSqlSchema converts the noSqlSchema string to a JSON object
+func parseNoSqlSchema(record map[string]interface{}) {
+	if noSqlSchemaStr, ok := record["noSqlSchema"].(string); ok && noSqlSchemaStr != "" {
+		var noSqlSchema interface{}
+		if err := json.Unmarshal([]byte(noSqlSchemaStr), &noSqlSchema); err == nil {
+			record["noSqlSchema"] = noSqlSchema
+		} else {
+			log.Printf("WARN: Failed to parse noSqlSchema JSON: %v", err)
+		}
+	}
 }

@@ -1,4 +1,4 @@
-.PHONY: lambda backend localstack localstack-destroy prod prod-destroy docker-up docker-down
+.PHONY: lambda backend localstack localstack-destroy prod prod-plan prod-destroy docker-up docker-down validate-bedrock
 
 docker-up:
 	@echo "🐳 Starting LocalStack Pro..."
@@ -48,14 +48,25 @@ lambda:
 ## SOLO PARA DESARROLLO
 localstack:
 	@echo "🔨 Starting localstack..."
+	@if [ -f .env ]; then \
+		export $$(grep -v '^#' .env | grep -v '^$$' | xargs); \
+	fi; \
 	cd infra/terraform/environments/dev && \
-	terraform init && terraform apply -auto-approve
+	terraform init && \
+	terraform apply -auto-approve \
+		-var="aws_access_key_id=$$AWS_ACCESS_KEY_ID" \
+		-var="aws_secret_access_key=$$AWS_SECRET_ACCESS_KEY"
 	@echo "✅ Localstack started"
 
 localstack-destroy:
 	@echo "🧹 Destroying LocalStack environment..."
+	@if [ -f .env ]; then \
+		export $$(grep -v '^#' .env | grep -v '^$$' | xargs); \
+	fi; \
 	cd infra/terraform/environments/dev && \
-	terraform destroy -auto-approve
+	terraform destroy -auto-approve \
+		-var="aws_access_key_id=$$AWS_ACCESS_KEY_ID" \
+		-var="aws_secret_access_key=$$AWS_SECRET_ACCESS_KEY"
 	@echo "✅ LocalStack destroyed"
 
 ## SOLO PARA PRODUCCION
@@ -65,11 +76,22 @@ backend:
 	terraform init && terraform apply -auto-approve
 	@echo "✅ Backend initialized"
 
+prod-plan:
+	@echo "📋 Planning production deployment..."
+	cd infra/terraform/environments/prod && \
+	terraform init && terraform plan
+	@echo "✅ Plan complete. Review changes above."
+
 prod:
 	@echo "🔨 Deploying to production..."
 	cd infra/terraform/environments/prod && \
-	terraform init && terraform apply -auto-approve
+	terraform init && terraform apply
 	@echo "✅ Production deployed"
+
+validate-bedrock:
+	@echo "🔍 Validating Bedrock access..."
+	./scripts/validate-bedrock.sh
+	@echo "✅ Bedrock validation complete"
 
 prod-destroy:
 	@echo "⚠️  Destroying production environment..."
