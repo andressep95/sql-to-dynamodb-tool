@@ -5,6 +5,7 @@ Herramienta serverless que convierte esquemas SQL relacionales a diseños optimi
 ## El Problema
 
 Migrar de bases de datos relacionales (SQL) a DynamoDB requiere:
+
 - Rediseñar esquemas de relacional a NoSQL
 - Identificar patrones de acceso óptimos
 - Crear índices secundarios apropiados
@@ -34,7 +35,7 @@ Aplicación web que analiza tus `CREATE TABLE` statements SQL y genera:
 
 ## Arquitectura
 
-![Arquitectura AWS](spec/diagram.gif)
+![Arquitectura AWS](spec/diagram_updated.gif)
 
 El sistema implementa un patrón de procesamiento asíncrono con los siguientes componentes:
 
