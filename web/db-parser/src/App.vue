@@ -4,12 +4,11 @@ import Sidebar from '@/components/Sidebar.vue'
 import Toast from 'primevue/toast'
 import Button from 'primevue/button'
 
-const sidebarRef = ref<InstanceType<typeof Sidebar> | null>(null)
+const sidebarExpanded = ref(false)
 const mobileMenuOpen = ref(false)
 
 const mainMargin = computed(() => {
-  if (window.innerWidth < 768) return '0'
-  return sidebarRef.value?.isExpanded ? '260px' : '70px'
+  return sidebarExpanded.value ? '220px' : '70px'
 })
 
 function toggleMobileMenu() {
@@ -32,9 +31,10 @@ function toggleMobileMenu() {
   <!-- Mobile overlay -->
   <div v-if="mobileMenuOpen" class="mobile-overlay" @click="mobileMenuOpen = false"></div>
 
-  <div :class="['sidebar-wrapper', { 'mobile-open': mobileMenuOpen }]">
-    <Sidebar ref="sidebarRef" />
-  </div>
+  <Sidebar
+    :is-mobile-open="mobileMenuOpen"
+    @update:expanded="sidebarExpanded = $event"
+  />
 
   <main class="main-content" :style="{ marginLeft: mainMargin }">
     <RouterView />
@@ -64,24 +64,12 @@ function toggleMobileMenu() {
   z-index: 999;
 }
 
-.sidebar-wrapper {
-  display: block;
-}
-
-@media (max-width: 767px) {
+@media (max-width: 768px) {
   .mobile-menu-btn {
     display: block;
   }
 
   .mobile-overlay {
-    display: block;
-  }
-
-  .sidebar-wrapper {
-    display: none;
-  }
-
-  .sidebar-wrapper.mobile-open {
     display: block;
   }
 

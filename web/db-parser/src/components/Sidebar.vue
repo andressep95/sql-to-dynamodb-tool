@@ -1,182 +1,314 @@
-<script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import Button from 'primevue/button'
+<template>
+  <aside :class="['sidebar', { expanded: isExpanded, 'mobile-open': isMobileOpen }]" @mouseenter="expand" @mouseleave="collapse">
+    <!-- Logo / Header -->
+    <div class="sidebar-header">
+      <i class="pi pi-database logo-icon"></i>
+      <span v-show="isExpanded || isMobileOpen" class="logo-text">DB Parser</span>
+    </div>
 
-const router = useRouter()
+    <!-- Navigation Menu -->
+    <nav class="sidebar-nav">
+      <router-link
+        v-for="item in menuItems"
+        :key="item.path"
+        :to="item.path"
+        class="sidebar-item"
+        :class="{ active: isActive(item.path) }"
+        :title="!isExpanded ? item.label : ''"
+      >
+        <i :class="['menu-icon', item.icon]"></i>
+        <span v-show="isExpanded || isMobileOpen" class="menu-label">{{ item.label }}</span>
+      </router-link>
+    </nav>
+
+    <!-- User Section -->
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <Avatar label="DB" shape="circle" size="normal" />
+        <div v-show="isExpanded || isMobileOpen" class="user-details">
+          <span class="user-name">SQL to NoSQL</span>
+          <span class="user-email">Parser Tool</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+</template>
+
+<script setup lang="ts">
+import { ref, watch, toRefs } from 'vue'
+import { useRoute } from 'vue-router'
+import Avatar from 'primevue/avatar'
+
 const route = useRoute()
 
-const isExpanded = ref(true)
+const props = defineProps<{
+  isMobileOpen?: boolean
+}>()
 
-defineExpose({ isExpanded })
+const emit = defineEmits<{
+  (e: 'update:expanded', value: boolean): void
+}>()
+
+const isExpanded = ref(false)
+const { isMobileOpen } = toRefs(props)
+
+watch(isExpanded, (newValue) => {
+  emit('update:expanded', newValue)
+})
 
 const menuItems = [
   { label: 'Parser', icon: 'pi pi-code', path: '/' },
   { label: 'Historial', icon: 'pi pi-history', path: '/history' },
 ]
 
-const sidebarWidth = computed(() => (isExpanded.value ? '260px' : '70px'))
+const isActive = (path: string) => route.path === path
 
-function toggleSidebar() {
-  isExpanded.value = !isExpanded.value
-}
-
-function navigate(path: string) {
-  router.push(path)
-}
-
-function isActive(path: string) {
-  return route.path === path
-}
+const expand = () => { isExpanded.value = true }
+const collapse = () => { isExpanded.value = false }
 </script>
 
-<template>
-  <aside class="sidebar" :style="{ width: sidebarWidth }">
-    <div class="sidebar-header">
-      <div class="logo-section" @click="navigate('/')">
-        <i class="pi pi-database logo-icon"></i>
-        <span v-if="isExpanded" class="logo-text">DB Parser</span>
-      </div>
-      <Button
-        :icon="isExpanded ? 'pi pi-angle-left' : 'pi pi-angle-right'"
-        text
-        rounded
-        size="small"
-        class="toggle-btn"
-        @click="toggleSidebar"
-      />
-    </div>
-
-    <nav class="sidebar-nav">
-      <div
-        v-for="item in menuItems"
-        :key="item.path"
-        class="nav-item"
-        :class="{ active: isActive(item.path) }"
-        @click="navigate(item.path)"
-        v-tooltip.right="!isExpanded ? item.label : undefined"
-      >
-        <i :class="item.icon"></i>
-        <span v-if="isExpanded">{{ item.label }}</span>
-      </div>
-    </nav>
-
-    <div class="sidebar-footer">
-      <div class="user-section">
-        <div class="avatar">DB</div>
-        <span v-if="isExpanded" class="user-name">SQL to NoSQL</span>
-      </div>
-    </div>
-  </aside>
-</template>
-
 <style scoped>
+.sidebar,
+.logo-text,
+.menu-label,
+.user-name,
+.user-email {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 .sidebar {
   position: fixed;
-  top: 0;
   left: 0;
+  top: 0;
   height: 100vh;
-  background: #1e1e2e;
-  color: #cdd6f4;
+  background-color: #ffffff;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
+  width: 70px;
   transition: width 0.3s ease;
-  overflow: hidden;
   z-index: 1000;
+  overflow: hidden;
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+  border: 1px solid #e5e7eb;
+  border-left: none;
+}
+
+.sidebar.expanded {
+  width: 220px;
 }
 
 .sidebar-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 16px 12px;
-  border-bottom: 1px solid #313244;
-}
-
-.logo-section {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
+  gap: 0.75rem;
+  padding: 1.5rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  min-height: 70px;
 }
 
 .logo-icon {
-  font-size: 1.5rem;
-  color: #89b4fa;
+  font-size: 1.75rem;
+  color: #3b82f6;
+  min-width: 1.75rem;
 }
 
 .logo-text {
   font-size: 1.2rem;
   font-weight: 700;
+  color: #111827;
   white-space: nowrap;
-  color: #cdd6f4;
-}
-
-.toggle-btn {
-  color: #cdd6f4 !important;
+  overflow: hidden;
 }
 
 .sidebar-nav {
   flex: 1;
-  padding: 12px 8px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0.5rem;
+  padding: 1rem 0.5rem;
+  overflow-y: auto;
 }
 
-.nav-item {
+.sidebar-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
+  gap: 1rem;
+  padding: 0.875rem 1rem;
   border-radius: 8px;
+  color: #6b7280;
+  text-decoration: none;
+  transition: all 0.2s ease;
   cursor: pointer;
-  transition: background 0.2s;
+}
+
+.sidebar-item:hover {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.sidebar-item.active {
+  background-color: #3b82f6;
+  color: #ffffff;
+  box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3), 0 2px 4px -2px rgba(59, 130, 246, 0.3);
+}
+
+.sidebar-item.active .menu-icon,
+.sidebar-item.active .menu-label {
+  color: #ffffff;
+}
+
+.menu-icon {
+  font-size: 1.25rem;
+  min-width: 1.25rem;
+  color: #6b7280;
+  transition: color 0.2s ease;
+}
+
+.sidebar-item:hover .menu-icon {
+  color: #374151;
+}
+
+.sidebar-item.active:hover .menu-icon {
+  color: #ffffff;
+}
+
+.menu-label {
+  font-size: 0.95rem;
+  font-weight: 600;
   white-space: nowrap;
+  overflow: hidden;
+  color: #6b7280;
 }
 
-.nav-item:hover {
-  background: #313244;
-}
-
-.nav-item.active {
-  background: #89b4fa;
-  color: #1e1e2e;
-}
-
-.nav-item i {
-  font-size: 1.1rem;
-  min-width: 20px;
-  text-align: center;
+.sidebar-item:hover .menu-label {
+  color: #374151;
 }
 
 .sidebar-footer {
-  padding: 16px 12px;
-  border-top: 1px solid #313244;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-top: 1px solid #e5e7eb;
 }
 
-.user-section {
+.user-info {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0.75rem;
 }
 
-.avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: #89b4fa;
-  color: #1e1e2e;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 0.85rem;
+.user-info :deep(.p-avatar) {
   flex-shrink: 0;
+  width: 2.25rem !important;
+  height: 2.25rem !important;
+  background-color: #3b82f6 !important;
+  color: #ffffff !important;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  overflow: hidden;
 }
 
 .user-name {
-  font-size: 0.9rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-email {
+  font-size: 0.75rem;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    width: 280px;
+    z-index: 9999;
+  }
+
+  .sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  .sidebar:hover {
+    width: 280px;
+  }
+
+  .sidebar-header {
+    padding: 1rem;
+    min-height: 50px;
+  }
+
+  .logo-icon {
+    font-size: 1.5rem;
+  }
+
+  .logo-text {
+    font-size: 1rem;
+  }
+
+  .sidebar-nav {
+    padding: 0.5rem;
+    gap: 0.3rem;
+  }
+
+  .sidebar-item {
+    padding: 0.6rem 0.8rem;
+  }
+
+  .sidebar-footer {
+    padding: 0.8rem;
+    gap: 0.4rem;
+  }
+
+  .user-info {
+    gap: 0.5rem;
+  }
+
+  .user-info :deep(.p-avatar) {
+    width: 1.8rem !important;
+    height: 1.8rem !important;
+  }
+
+  .user-name {
+    font-size: 0.8rem;
+  }
+
+  .user-email {
+    font-size: 0.7rem;
+  }
 }
 </style>
