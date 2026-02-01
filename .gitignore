@@ -51,6 +51,7 @@ infra/terraform/backend/*.tfvars
 .aws/
 localstack/
 docker/localstack/
+volume/
 *.pem
 *.key
 
