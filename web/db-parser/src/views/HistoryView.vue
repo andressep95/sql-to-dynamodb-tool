@@ -158,12 +158,6 @@ function formatSql(sql: string): string {
             <span class="meta-label">Tablas Extraidas:</span>
             <span class="meta-value">{{ selectedConversion.tablesExtracted }}</span>
           </div>
-          <template v-for="table in selectedConversion.noSqlSchema.tables" :key="'sk-' + table.tableName">
-            <div v-if="table.sortKey" class="meta-item">
-              <span class="meta-label">Sort Key ({{ table.tableName }})</span>
-              <span class="meta-value">{{ table.sortKey.name }} ({{ table.sortKey.type }})</span>
-            </div>
-          </template>
         </div>
 
         <!-- Split pane -->
