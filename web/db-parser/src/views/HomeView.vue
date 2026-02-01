@@ -2,13 +2,26 @@
 import { ref } from 'vue'
 import Textarea from 'primevue/textarea'
 import Button from 'primevue/button'
+import Select from 'primevue/select'
+import Dialog from 'primevue/dialog'
 import { useToast } from 'primevue/usetoast'
+import { parseSql } from '@/services/schemasApi'
+import type { ParseSqlRequest } from '@/models/schemas'
 
 const toast = useToast()
 
 const sqlInput = ref('')
-const result = ref('')
 const loading = ref(false)
+const successModalVisible = ref(false)
+
+const optimizationOptions = [
+  { label: 'Balanced', value: 'balanced' },
+  { label: 'Read Heavy', value: 'read-heavy' },
+  { label: 'Write Heavy', value: 'write-heavy' },
+  { label: 'Cost Optimized', value: 'cost-optimized' },
+]
+
+const selectedOptimization = ref(optimizationOptions[0])
 
 async function handleParse() {
   if (!sqlInput.value.trim()) {
@@ -17,15 +30,16 @@ async function handleParse() {
   }
 
   loading.value = true
-  result.value = ''
 
   try {
-    // TODO: connect to actual parser API
-    await new Promise((r) => setTimeout(r, 500))
-    result.value = JSON.stringify({ message: 'Parser no conectado aún', input: sqlInput.value }, null, 2)
-    toast.add({ severity: 'success', summary: 'Listo', detail: 'Consulta procesada', life: 3000 })
+    await parseSql({
+      sqlContent: sqlInput.value,
+      optimizationType: selectedOptimization.value?.value as ParseSqlRequest['optimizationType'],
+    })
+    successModalVisible.value = true
+    sqlInput.value = ''
   } catch {
-    toast.add({ severity: 'error', summary: 'Error', detail: 'Error al parsear la consulta', life: 3000 })
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Error al enviar la consulta', life: 3000 })
   } finally {
     loading.value = false
   }
@@ -44,18 +58,43 @@ async function handleParse() {
           id="sql-input"
           v-model="sqlInput"
           rows="8"
-          placeholder="SELECT * FROM users WHERE age > 25"
+          placeholder="CREATE TABLE users (id BIGSERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL, ...);"
           autoResize
           class="sql-textarea"
         />
-        <Button label="Parsear" icon="pi pi-play" :loading="loading" @click="handleParse" class="parse-btn" />
-      </div>
 
-      <div v-if="result" class="result-section">
-        <label>Resultado</label>
-        <pre class="result-output">{{ result }}</pre>
+        <div class="actions-row">
+          <Select
+            v-model="selectedOptimization"
+            :options="optimizationOptions"
+            optionLabel="label"
+            placeholder="Tipo de optimización"
+            class="optimization-select"
+          />
+          <Button label="Parsear" icon="pi pi-play" :loading="loading" @click="handleParse" />
+        </div>
       </div>
     </div>
+
+    <!-- Success Modal -->
+    <Dialog
+      v-model:visible="successModalVisible"
+      header="Solicitud Enviada"
+      modal
+      dismissableMask
+      :closable="true"
+      :style="{ width: '450px' }"
+      :breakpoints="{ '768px': '90vw' }"
+    >
+      <div class="success-content">
+        <i class="pi pi-check-circle success-icon"></i>
+        <p>Su solicitud ha sido enviada exitosamente.</p>
+        <p class="success-hint">Por favor manténgase atento a la sección de <strong>Historial</strong> para ver el resultado.</p>
+      </div>
+      <template #footer>
+        <Button label="Entendido" icon="pi pi-check" @click="successModalVisible = false" />
+      </template>
+    </Dialog>
   </div>
 </template>
 
@@ -92,24 +131,40 @@ h2 {
   font-family: monospace;
 }
 
-.parse-btn {
-  align-self: flex-start;
+.actions-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
   margin-top: 0.5rem;
 }
 
-.result-section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+.optimization-select {
+  min-width: 200px;
 }
 
-.result-output {
-  background: #1e1e2e;
-  color: #a6e3a1;
-  padding: 1rem;
-  border-radius: 8px;
-  overflow-x: auto;
-  font-size: 0.9rem;
-  line-height: 1.5;
+/* Success modal */
+.success-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.5rem;
+  padding: 1rem 0;
+}
+
+.success-icon {
+  font-size: 3rem;
+  color: #22c55e;
+}
+
+.success-content p {
+  margin: 0;
+  color: #111827;
+  font-size: 0.95rem;
+}
+
+.success-hint {
+  color: #6b7280 !important;
+  font-size: 0.85rem !important;
 }
 </style>
