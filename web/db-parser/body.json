@@ -1,0 +1,84 @@
+{
+  "conversions": [
+    {
+      "conversionDate": "2026-02-01",
+      "conversionId": "bf72d5e0-88ce-4a9f-b0e8-dd58a2d745da",
+      "createdAt": "2026-02-01T04:55:06Z",
+      "expiresAt": "1770008106",
+      "noSqlSchema": {
+        "tables": [
+          {
+            "attributes": [
+              {
+                "name": "name",
+                "type": "S"
+              },
+              {
+                "name": "email",
+                "type": "S"
+              },
+              {
+                "name": "username",
+                "type": "S"
+              },
+              {
+                "name": "password_hash",
+                "type": "S"
+              },
+              {
+                "name": "is_active",
+                "type": "N"
+              },
+              {
+                "name": "role",
+                "type": "S"
+              },
+              {
+                "name": "created_at",
+                "type": "S"
+              },
+              {
+                "name": "updated_at",
+                "type": "S"
+              },
+              {
+                "name": "last_login",
+                "type": "S"
+              }
+            ],
+            "billingMode": "PAY_PER_REQUEST",
+            "globalSecondaryIndexes": [
+              {
+                "indexName": "email-index",
+                "partitionKey": {
+                  "name": "email",
+                  "type": "S"
+                },
+                "projectionType": "ALL"
+              },
+              {
+                "indexName": "username-index",
+                "partitionKey": {
+                  "name": "username",
+                  "type": "S"
+                },
+                "projectionType": "ALL"
+              }
+            ],
+            "partitionKey": {
+              "name": "id",
+              "type": "N"
+            },
+            "sortKey": null,
+            "tableName": "Users"
+          }
+        ]
+      },
+      "optimizationType": "balanced",
+      "sqlContent": "CREATE TABLE users (id BIGSERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL, email TEXT NOT NULL UNIQUE, username VARCHAR(50) UNIQUE, password_hash TEXT NOT NULL, is_active BOOLEAN NOT NULL DEFAULT TRUE, role VARCHAR(30) NOT NULL DEFAULT 'USER' CHECK (role IN ('USER','ADMIN','MODERATOR')), created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, last_login TIMESTAMP, CONSTRAINT email_format_chk CHECK (email ~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}$'));",
+      "status": "COMPLETED",
+      "tablesExtracted": "1"
+    }
+  ],
+  "count": 1
+}
