@@ -35,7 +35,7 @@ Aplicación web que analiza tus `CREATE TABLE` statements SQL y genera:
 
 ## Arquitectura
 
-![Arquitectura AWS](spec/diagram_updated.gif)
+![Arquitectura AWS](spec/diagram_updated_v2.gif)
 
 El sistema implementa un patrón de procesamiento asíncrono con los siguientes componentes:
 
