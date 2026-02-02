@@ -83,6 +83,11 @@ variable "dlq_handler_role_name" {
   type        = string
 }
 
+variable "access_pattern_worker_role_name" {
+  description = "Name of the access_pattern_worker IAM role for policy attachments"
+  type        = string
+}
+
 # SQS
 variable "sqs_queue_arn" {
   description = "ARN of the SQS conversion queue (for IAM policies)"
@@ -91,6 +96,11 @@ variable "sqs_queue_arn" {
 
 variable "sqs_dlq_arn" {
   description = "ARN of the SQS dead-letter queue (for IAM policies)"
+  type        = string
+}
+
+variable "access_pattern_queue_arn" {
+  description = "ARN of the SQS access pattern queue (for IAM policies)"
   type        = string
 }
 

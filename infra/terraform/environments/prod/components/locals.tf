@@ -41,5 +41,15 @@ locals {
       reserved_concurrent_executions = -1 # unreserved (use account default)
       log_retention_days             = 30
     }
+
+    access_pattern_worker = {
+      description                    = "access_pattern_worker"
+      use_case                       = "UC-access_pattern_worker-001"
+      api_operation                  = "access_pattern_worker"
+      memory_size                    = 256
+      timeout                        = 120
+      reserved_concurrent_executions = -1 # unreserved (use account default)
+      log_retention_days             = 30
+    }
   }
 }

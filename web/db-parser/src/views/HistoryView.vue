@@ -4,13 +4,19 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Dialog from 'primevue/dialog'
 import Tag from 'primevue/tag'
+import Tabs from 'primevue/tabs'
+import TabList from 'primevue/tablist'
+import Tab from 'primevue/tab'
+import TabPanels from 'primevue/tabpanels'
+import TabPanel from 'primevue/tabpanel'
 import { useToast } from 'primevue/usetoast'
-import { getSchemas } from '@/services/schemasApi'
-import type { Conversion } from '@/models/schemas'
+import { getSchemas, getSchemaById } from '@/services/schemasApi'
+import type { Conversion, ConversionSummary } from '@/models/schemas'
 
 const toast = useToast()
-const conversions = ref<Conversion[]>([])
+const conversions = ref<ConversionSummary[]>([])
 const loading = ref(false)
+const loadingDetail = ref(false)
 const selectedConversion = ref<Conversion | null>(null)
 const modalVisible = ref(false)
 
@@ -30,9 +36,18 @@ async function fetchConversions() {
   }
 }
 
-function openDetail(conversion: Conversion) {
-  selectedConversion.value = conversion
+async function openDetail(summary: ConversionSummary) {
   modalVisible.value = true
+  loadingDetail.value = true
+  selectedConversion.value = null
+  try {
+    selectedConversion.value = await getSchemaById(summary.conversionId)
+  } catch {
+    toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudo cargar el detalle', life: 3000 })
+    modalVisible.value = false
+  } finally {
+    loadingDetail.value = false
+  }
 }
 
 function formatDate(dateStr: string) {
@@ -133,6 +148,12 @@ function formatSql(sql: string): string {
       :breakpoints="{ '768px': '98vw' }"
       :contentStyle="{ overflow: 'auto' }"
     >
+      <!-- Loading state -->
+      <div v-if="loadingDetail" class="detail-loading">
+        <i class="pi pi-spin pi-spinner" style="font-size: 2rem; color: #3b82f6;"></i>
+        <p>Cargando detalle...</p>
+      </div>
+
       <template v-if="selectedConversion">
         <!-- Meta info bar -->
         <div class="detail-meta-bar">
@@ -178,58 +199,231 @@ function formatSql(sql: string): string {
               <span>DynamoDB</span>
             </div>
             <div class="nosql-content">
-              <div v-for="table in selectedConversion.noSqlSchema.tables" :key="table.tableName" class="table-card">
-                <h5 class="table-name">
-                  <i class="pi pi-table"></i>
-                  {{ table.tableName }}
-                </h5>
+              <!-- New DynamoDBDesign format -->
+              <template v-if="selectedConversion.noSqlSchema.design">
+                <Tabs value="0">
+                  <TabList>
+                    <Tab value="0"><i class="pi pi-server tab-icon"></i> Estructura</Tab>
+                    <Tab value="1" v-if="selectedConversion.noSqlSchema.analysis?.accessPatterns?.length"><i class="pi pi-directions tab-icon"></i> Access Patterns</Tab>
+                    <Tab value="2" v-if="selectedConversion.noSqlSchema.sampleData?.length"><i class="pi pi-database tab-icon"></i> Sample Data</Tab>
+                    <Tab value="3" v-if="selectedConversion.noSqlSchema.recommendations?.length"><i class="pi pi-lightbulb tab-icon"></i> Recomendaciones</Tab>
+                  </TabList>
+                  <TabPanels>
+                    <!-- Tab: Estructura -->
+                    <TabPanel value="0">
+                      <div class="table-card">
+                        <h5 class="table-name">
+                          <i class="pi pi-table"></i>
+                          {{ selectedConversion.noSqlSchema.design.tableName }}
+                        </h5>
 
-                <h6>Billing Mode</h6>
-                <div class="billing-badge">
-                  <i class="pi pi-money-bill"></i>
-                  {{ table.billingMode.replace(/_/g, ' ') }}
-                </div>
+                        <h6>Billing Mode</h6>
+                        <div class="billing-badge">
+                          <i class="pi pi-money-bill"></i>
+                          {{ selectedConversion.noSqlSchema.design.billingMode.replace(/_/g, ' ') }}
+                        </div>
 
-                <h6>Partition Key</h6>
-                <div class="attributes-list">
-                  <Tag :value="`${table.partitionKey.name} (${table.partitionKey.type})`" severity="secondary" />
-                </div>
+                        <h6>Primary Key</h6>
+                        <div class="key-section">
+                          <div class="key-item">
+                            <span class="key-badge pk">PK</span>
+                            <span>{{ selectedConversion.noSqlSchema.design.primaryKey.partitionKey.name }} ({{ selectedConversion.noSqlSchema.design.primaryKey.partitionKey.type }})</span>
+                          </div>
+                          <div class="key-item">
+                            <span class="key-badge sk">SK</span>
+                            <span>{{ selectedConversion.noSqlSchema.design.primaryKey.sortKey.name }} ({{ selectedConversion.noSqlSchema.design.primaryKey.sortKey.type }})</span>
+                          </div>
+                        </div>
 
-                <h6>Sort Key</h6>
-                <div class="attributes-list">
-                  <Tag
-                    :value="table.sortKey ? `${table.sortKey.name} (${table.sortKey.type})` : 'NULL'"
-                    severity="secondary"
-                  />
-                </div>
+                        <template v-if="selectedConversion.noSqlSchema.design.globalSecondaryIndexes.length > 0">
+                          <h6>Global Secondary Indexes</h6>
+                          <div class="gsi-list">
+                            <div v-for="gsi in selectedConversion.noSqlSchema.design.globalSecondaryIndexes" :key="gsi.indexName" class="gsi-card">
+                              <div class="gsi-name">
+                                <i class="pi pi-search"></i>
+                                {{ gsi.indexName }}
+                              </div>
+                              <div class="gsi-details">
+                                <span class="key-badge pk">{{ gsi.partitionKey.name }}</span>
+                                <span v-if="gsi.sortKey" class="key-badge sk">{{ gsi.sortKey.name }}</span>
+                                <Tag :value="gsi.projection" severity="info" size="small" />
+                                <span class="gsi-purpose">{{ gsi.purpose }}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </template>
 
-                <h6>Atributos</h6>
-                <div class="attributes-list">
-                  <Tag
-                    v-for="attr in table.attributes"
-                    :key="attr.name"
-                    :value="`${attr.name} (${attr.type})`"
-                    severity="secondary"
-                  />
-                </div>
+                        <template v-if="selectedConversion.noSqlSchema.design.entitySchemas.length > 0">
+                          <h6>Entity Schemas</h6>
+                          <div class="entity-list">
+                            <div v-for="entity in selectedConversion.noSqlSchema.design.entitySchemas" :key="entity.entityType" class="entity-card">
+                              <div class="entity-name">
+                                <i class="pi pi-box"></i>
+                                {{ entity.entityType }}
+                              </div>
+                              <div class="entity-patterns">
+                                <span class="pattern-badge pk">PK: {{ entity.pkPattern }}</span>
+                                <span class="pattern-badge sk">SK: {{ entity.skPattern }}</span>
+                              </div>
+                              <div class="attributes-list">
+                                <Tag
+                                  v-for="attr in entity.attributes"
+                                  :key="attr.name"
+                                  :value="`${attr.name} (${attr.type})${attr.required ? ' *' : ''}`"
+                                  :severity="attr.required ? 'warn' : 'secondary'"
+                                  size="small"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </template>
 
-                <template v-if="table.globalSecondaryIndexes.length > 0">
-                  <h6>Global Secondary Indexes</h6>
-                  <div class="gsi-list">
-                    <div v-for="gsi in table.globalSecondaryIndexes" :key="gsi.indexName" class="gsi-card">
-                      <div class="gsi-name">
-                        <i class="pi pi-search"></i>
-                        {{ gsi.indexName }}
+                        <template v-if="selectedConversion.noSqlSchema.design.edgeItems?.length > 0">
+                          <h6>Edge Items</h6>
+                          <div class="entity-list">
+                            <div v-for="edge in selectedConversion.noSqlSchema.design.edgeItems" :key="edge.name" class="entity-card edge-card">
+                              <div class="entity-name">
+                                <i class="pi pi-link"></i>
+                                {{ edge.name }}
+                              </div>
+                              <p class="edge-description" v-if="edge.description">{{ edge.description }}</p>
+                              <div class="entity-patterns">
+                                <span class="pattern-badge pk">PK: {{ edge.pkPattern }}</span>
+                                <span class="pattern-badge sk">SK: {{ edge.skPattern }}</span>
+                              </div>
+                              <div class="attributes-list" v-if="edge.attributes?.length">
+                                <Tag
+                                  v-for="attr in edge.attributes"
+                                  :key="attr.name"
+                                  :value="`${attr.name} (${attr.type})`"
+                                  severity="secondary"
+                                  size="small"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </template>
                       </div>
-                      <div class="gsi-details">
-                        <span class="key-badge pk">Partition Key</span>
-                        <span>{{ gsi.partitionKey.name }} ({{ gsi.partitionKey.type }})</span>
-                        <Tag :value="gsi.projectionType" severity="info" size="small" />
+                    </TabPanel>
+
+                    <!-- Tab: Access Patterns -->
+                    <TabPanel value="1">
+                      <div class="ap-section">
+                        <div v-for="ap in selectedConversion.noSqlSchema.analysis?.accessPatterns" :key="ap.id" class="ap-card">
+                          <div class="ap-header">
+                            <span class="ap-id">{{ ap.id }}</span>
+                            <span class="ap-operation">
+                              <Tag :value="ap.operation" severity="info" size="small" />
+                            </span>
+                            <span class="ap-index">
+                              <Tag :value="ap.index" severity="secondary" size="small" />
+                            </span>
+                          </div>
+                          <p class="ap-description">{{ ap.description }}</p>
+                          <code class="ap-key-condition">{{ ap.keyCondition }}</code>
+                        </div>
+                      </div>
+
+                      <template v-if="selectedConversion.noSqlSchema.accessPatternImplementation?.length > 0">
+                        <h6>Implementaciones</h6>
+                        <div class="ap-section">
+                          <div v-for="impl in selectedConversion.noSqlSchema.accessPatternImplementation" :key="impl.patternId" class="impl-card">
+                            <div class="ap-header">
+                              <span class="ap-id">{{ impl.patternId }}</span>
+                              <span class="ap-desc-text">{{ impl.description }}</span>
+                            </div>
+                            <pre class="impl-json">{{ JSON.stringify(impl.implementation, null, 2) }}</pre>
+                          </div>
+                        </div>
+                      </template>
+                    </TabPanel>
+
+                    <!-- Tab: Sample Data -->
+                    <TabPanel value="2">
+                      <div class="sample-section">
+                        <div v-for="(sample, idx) in selectedConversion.noSqlSchema.sampleData" :key="idx" class="sample-card">
+                          <div class="sample-header">
+                            <i class="pi pi-file"></i>
+                            <span>{{ sample.description }}</span>
+                          </div>
+                          <pre class="sample-json" v-if="sample.item">{{ JSON.stringify(sample.item, null, 2) }}</pre>
+                          <p v-else class="sample-empty">Sin datos de ejemplo</p>
+                        </div>
+                      </div>
+                    </TabPanel>
+
+                    <!-- Tab: Recomendaciones -->
+                    <TabPanel value="3">
+                      <div class="recommendations-list">
+                        <div v-for="(rec, idx) in selectedConversion.noSqlSchema.recommendations" :key="idx" class="recommendation-card">
+                          <div class="rec-header">
+                            <i class="pi pi-lightbulb"></i>
+                            <span class="rec-category">{{ rec.category }}</span>
+                          </div>
+                          <p class="rec-description">{{ rec.description }}</p>
+                          <p class="rec-rationale">{{ rec.rationale }}</p>
+                        </div>
+                      </div>
+                    </TabPanel>
+                  </TabPanels>
+                </Tabs>
+              </template>
+
+              <!-- Legacy format fallback -->
+              <template v-else>
+                <div v-for="table in selectedConversion.noSqlSchema.tables" :key="table.tableName" class="table-card">
+                  <h5 class="table-name">
+                    <i class="pi pi-table"></i>
+                    {{ table.tableName }}
+                  </h5>
+
+                  <h6>Billing Mode</h6>
+                  <div class="billing-badge">
+                    <i class="pi pi-money-bill"></i>
+                    {{ table.billingMode.replace(/_/g, ' ') }}
+                  </div>
+
+                  <h6>Partition Key</h6>
+                  <div class="attributes-list">
+                    <Tag :value="`${table.partitionKey.name} (${table.partitionKey.type})`" severity="secondary" />
+                  </div>
+
+                  <h6>Sort Key</h6>
+                  <div class="attributes-list">
+                    <Tag
+                      :value="table.sortKey ? `${table.sortKey.name} (${table.sortKey.type})` : 'NULL'"
+                      severity="secondary"
+                    />
+                  </div>
+
+                  <h6>Atributos</h6>
+                  <div class="attributes-list">
+                    <Tag
+                      v-for="attr in table.attributes"
+                      :key="attr.name"
+                      :value="`${attr.name} (${attr.type})`"
+                      severity="secondary"
+                    />
+                  </div>
+
+                  <template v-if="table.globalSecondaryIndexes.length > 0">
+                    <h6>Global Secondary Indexes</h6>
+                    <div class="gsi-list">
+                      <div v-for="gsi in table.globalSecondaryIndexes" :key="gsi.indexName" class="gsi-card">
+                        <div class="gsi-name">
+                          <i class="pi pi-search"></i>
+                          {{ gsi.indexName }}
+                        </div>
+                        <div class="gsi-details">
+                          <span class="key-badge pk">Partition Key</span>
+                          <span>{{ gsi.partitionKey.name }} ({{ gsi.partitionKey.type }})</span>
+                          <Tag :value="gsi.projectionType || gsi.projection" severity="info" size="small" />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </template>
-              </div>
+                  </template>
+                </div>
+              </template>
             </div>
           </div>
         </div>
@@ -266,6 +460,17 @@ function formatSql(sql: string): string {
 
 .conversions-table :deep(tr) {
   cursor: pointer;
+}
+
+/* Detail loading */
+.detail-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  gap: 1rem;
+  color: #6b7280;
 }
 
 /* Meta bar */
@@ -475,6 +680,252 @@ h6 {
   gap: 0.5rem;
   font-size: 0.8rem;
   color: #6b7280;
+}
+
+.gsi-purpose {
+  font-style: italic;
+  color: #9ca3af;
+  font-size: 0.75rem;
+}
+
+/* Entity schemas */
+.entity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.entity-card {
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 6px;
+  padding: 0.6rem 0.75rem;
+}
+
+.entity-name {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #0c4a6e;
+  margin-bottom: 0.3rem;
+}
+
+.entity-name i {
+  font-size: 0.8rem;
+  color: #0284c7;
+}
+
+.entity-patterns {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.pattern-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  font-family: monospace;
+}
+
+.pattern-badge.pk {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.pattern-badge.sk {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+/* Recommendations */
+.recommendations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.recommendation-card {
+  background: #fffbeb;
+  border: 1px solid #fed7aa;
+  border-radius: 6px;
+  padding: 0.75rem;
+}
+
+.rec-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.4rem;
+}
+
+.rec-header i {
+  color: #f59e0b;
+  font-size: 0.9rem;
+}
+
+.rec-category {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #92400e;
+}
+
+.rec-description {
+  margin: 0 0 0.3rem;
+  font-size: 0.85rem;
+  color: #374151;
+}
+
+.rec-rationale {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #6b7280;
+  font-style: italic;
+}
+
+/* Tabs */
+.tab-icon {
+  margin-right: 0.3rem;
+  font-size: 0.8rem;
+}
+
+/* Access Patterns */
+.ap-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ap-card {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  padding: 0.75rem;
+}
+
+.ap-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.3rem;
+}
+
+.ap-id {
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: #166534;
+  background: #dcfce7;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-family: monospace;
+}
+
+.ap-description {
+  margin: 0 0 0.3rem;
+  font-size: 0.85rem;
+  color: #374151;
+}
+
+.ap-key-condition {
+  display: block;
+  font-size: 0.78rem;
+  color: #6b7280;
+  background: #f9fafb;
+  padding: 0.3rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid #e5e7eb;
+  font-family: monospace;
+  word-break: break-all;
+}
+
+.ap-desc-text {
+  font-size: 0.8rem;
+  color: #374151;
+}
+
+/* Implementations */
+.impl-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 0.75rem;
+}
+
+.impl-json {
+  margin: 0.4rem 0 0;
+  font-size: 0.75rem;
+  color: #334155;
+  background: #1e1e2e;
+  color: #a6e3a1;
+  padding: 0.5rem;
+  border-radius: 4px;
+  overflow: auto;
+  max-height: 200px;
+}
+
+/* Sample Data */
+.sample-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sample-card {
+  background: #faf5ff;
+  border: 1px solid #e9d5ff;
+  border-radius: 6px;
+  padding: 0.75rem;
+}
+
+.sample-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #6b21a8;
+  margin-bottom: 0.4rem;
+}
+
+.sample-header i {
+  font-size: 0.8rem;
+  color: #9333ea;
+}
+
+.sample-json {
+  margin: 0;
+  font-size: 0.75rem;
+  background: #1e1e2e;
+  color: #cba6f7;
+  padding: 0.5rem;
+  border-radius: 4px;
+  overflow: auto;
+  max-height: 250px;
+}
+
+.sample-empty {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #9ca3af;
+  font-style: italic;
+}
+
+/* Edge Items */
+.edge-card {
+  background: #fefce8 !important;
+  border-color: #fde68a !important;
+}
+
+.edge-description {
+  margin: 0 0 0.3rem;
+  font-size: 0.8rem;
+  color: #6b7280;
+  font-style: italic;
 }
 
 /* Mobile: stack vertically */

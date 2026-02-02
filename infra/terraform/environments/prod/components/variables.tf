@@ -56,3 +56,20 @@ variable "sqs_dlq_arn" {
   type        = string
   default     = ""
 }
+
+variable "access_pattern_worker_role_arn" {
+  description = "ARN of the IAM role for access_pattern_worker Lambda"
+  type        = string
+}
+
+variable "access_pattern_queue_url" {
+  description = "URL of the SQS access pattern queue"
+  type        = string
+  default     = ""
+}
+
+variable "access_pattern_queue_arn" {
+  description = "ARN of the SQS access pattern queue"
+  type        = string
+  default     = ""
+}

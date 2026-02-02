@@ -131,3 +131,27 @@ resource "aws_iam_role_policy" "dlq_handler_dynamodb" {
     ]
   })
 }
+
+# ============================================
+# IAM Policy - access_pattern_worker: DynamoDB UpdateItem
+# ============================================
+
+resource "aws_iam_role_policy" "access_pattern_worker_dynamodb" {
+  name = "${var.environment}-access-pattern-worker-dynamodb"
+  role = var.access_pattern_worker_role_name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:UpdateItem"
+        ]
+        Resource = [
+          module.schemas_table.table_arn
+        ]
+      }
+    ]
+  })
+}

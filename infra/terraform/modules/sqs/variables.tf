@@ -3,19 +3,20 @@
 # ============================================
 
 variable "queue_name" {
-  description = "Name of the main SQS queue"
-  type        = string
-}
-
-variable "dlq_name" {
-  description = "Name of the dead letter queue"
+  description = "Base name for SQS queues"
   type        = string
 }
 
 variable "visibility_timeout_seconds" {
-  description = "Visibility timeout in seconds"
+  description = "Visibility timeout for conversion queue"
   type        = number
-  default     = 30
+  default     = 180 # 3 minutes for conversion
+}
+
+variable "access_pattern_visibility_timeout" {
+  description = "Visibility timeout for access pattern queue"
+  type        = number
+  default     = 120 # 2 minutes for access patterns
 }
 
 variable "message_retention_seconds" {

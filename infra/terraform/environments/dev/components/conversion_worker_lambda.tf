@@ -30,6 +30,7 @@ module "conversion_worker" {
     BEDROCK_AWS_ACCESS_KEY_ID     = var.aws_access_key_id
     BEDROCK_AWS_SECRET_ACCESS_KEY = var.aws_secret_access_key
     BEDROCK_AWS_REGION            = var.aws_region
+    ACCESS_PATTERN_QUEUE_URL      = var.access_pattern_queue_url
   }
 
   # Logging

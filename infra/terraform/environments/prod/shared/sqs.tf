@@ -68,3 +68,47 @@ resource "aws_iam_role_policy" "lambda_sqs_dlq_consume" {
     ]
   })
 }
+
+# IAM Policy - conversion_worker: SQS Send to access-pattern queue
+resource "aws_iam_role_policy" "lambda_sqs_access_pattern_send" {
+  name = "${var.environment}-lambda-sqs-access-pattern-send"
+  role = var.conversion_worker_role_name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "sqs:SendMessage"
+        ]
+        Resource = [
+          var.access_pattern_queue_arn
+        ]
+      }
+    ]
+  })
+}
+
+# IAM Policy - access_pattern_worker: SQS Consume from access-pattern queue
+resource "aws_iam_role_policy" "lambda_sqs_access_pattern_consume" {
+  name = "${var.environment}-lambda-sqs-access-pattern-consume"
+  role = var.access_pattern_worker_role_name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "sqs:ReceiveMessage",
+          "sqs:DeleteMessage",
+          "sqs:GetQueueAttributes"
+        ]
+        Resource = [
+          var.access_pattern_queue_arn
+        ]
+      }
+    ]
+  })
+}

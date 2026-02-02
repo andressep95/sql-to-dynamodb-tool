@@ -64,3 +64,14 @@ output "worker_function_arn" {
   description = "ARN of the conversion worker Lambda function"
   value       = module.conversion_worker.function_arn
 }
+
+# access_pattern_worker Lambda outputs
+output "access_pattern_worker_function_name" {
+  description = "Name of the access pattern worker Lambda function"
+  value       = module.access_pattern_worker.function_name
+}
+
+output "access_pattern_worker_function_arn" {
+  description = "ARN of the access pattern worker Lambda function"
+  value       = module.access_pattern_worker.function_arn
+}

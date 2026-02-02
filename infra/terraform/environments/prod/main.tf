@@ -73,7 +73,8 @@ locals {
   process_handler_role_name   = "${local.project_name}-${local.environment}-process-handler-role"
   conversion_worker_role_name = "${local.project_name}-${local.environment}-conversion-worker-role"
   query_handler_role_name     = "${local.project_name}-${local.environment}-query-handler-role"
-  dlq_handler_role_name       = "${local.project_name}-${local.environment}-dlq-handler-role"
+  dlq_handler_role_name           = "${local.project_name}-${local.environment}-dlq-handler-role"
+  access_pattern_worker_role_name = "${local.project_name}-${local.environment}-access-pattern-worker-role"
 }
 
 # ============================================
@@ -119,6 +120,12 @@ resource "aws_iam_role" "dlq_handler" {
   tags               = local.common_tags
 }
 
+resource "aws_iam_role" "access_pattern_worker" {
+  name               = local.access_pattern_worker_role_name
+  assume_role_policy = local.lambda_assume_role_policy
+  tags               = local.common_tags
+}
+
 # Lambda basic execution (CloudWatch Logs) — one per role
 resource "aws_iam_role_policy_attachment" "process_handler_basic_execution" {
   role       = aws_iam_role.process_handler.name
@@ -140,6 +147,11 @@ resource "aws_iam_role_policy_attachment" "dlq_handler_basic_execution" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
+resource "aws_iam_role_policy_attachment" "access_pattern_worker_basic_execution" {
+  role       = aws_iam_role.access_pattern_worker.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
 # ============================================
 # SQS (Conversion Queue)
 # ============================================
@@ -148,9 +160,9 @@ module "conversion_queue" {
   source = "../../modules/sqs"
 
   queue_name = "${var.environment}-conversion-queue"
-  dlq_name   = "${var.environment}-conversion-dlq"
 
   visibility_timeout_seconds = 180
+  access_pattern_visibility_timeout = 120
   message_retention_seconds  = 345600 # 4 days
   receive_wait_time_seconds  = 20     # Long polling
   max_receive_count          = 3
@@ -169,9 +181,13 @@ module "lambda_components" {
   dlq_handler_role_arn       = aws_iam_role.dlq_handler.arn
 
   dynamodb_table_name = local.schemas_table_name
-  sqs_queue_url       = module.conversion_queue.queue_url
-  sqs_queue_arn       = module.conversion_queue.queue_arn
-  sqs_dlq_arn         = module.conversion_queue.dlq_arn
+  sqs_queue_url       = module.conversion_queue.conversion_queue_url
+  sqs_queue_arn       = module.conversion_queue.conversion_queue_arn
+  sqs_dlq_arn         = module.conversion_queue.conversion_dlq_arn
+
+  access_pattern_worker_role_arn = aws_iam_role.access_pattern_worker.arn
+  access_pattern_queue_url       = module.conversion_queue.access_pattern_queue_url
+  access_pattern_queue_arn       = module.conversion_queue.access_pattern_queue_arn
 }
 
 # ============================================
@@ -203,14 +219,16 @@ module "shared" {
   process_handler_role_name   = aws_iam_role.process_handler.name
   conversion_worker_role_name = aws_iam_role.conversion_worker.name
   query_handler_role_name     = aws_iam_role.query_handler.name
-  dlq_handler_role_name       = aws_iam_role.dlq_handler.name
+  dlq_handler_role_name           = aws_iam_role.dlq_handler.name
+  access_pattern_worker_role_name = aws_iam_role.access_pattern_worker.name
 
   # DynamoDB
   schemas_table_name = local.schemas_table_name
 
   # SQS ARN for IAM policies
-  sqs_queue_arn = module.conversion_queue.queue_arn
-  sqs_dlq_arn   = module.conversion_queue.dlq_arn
+  sqs_queue_arn            = module.conversion_queue.conversion_queue_arn
+  sqs_dlq_arn              = module.conversion_queue.conversion_dlq_arn
+  access_pattern_queue_arn = module.conversion_queue.access_pattern_queue_arn
 }
 
 # ============================================
@@ -232,4 +250,21 @@ module "bedrock" {
   tags = local.common_tags
 
   depends_on = [aws_iam_role.conversion_worker]
+}
+
+module "bedrock_access_pattern" {
+  source = "../../modules/bedrock"
+
+  model_name     = "claude-3-5-haiku-access-pattern"
+  model_id       = "us.anthropic.claude-3-5-haiku-20241022-v1:0"
+  model_provider = "anthropic"
+
+  enable_logging        = false
+  skip_model_validation = false
+  create_lambda_policy  = true
+  lambda_role_name      = aws_iam_role.access_pattern_worker.name
+
+  tags = local.common_tags
+
+  depends_on = [aws_iam_role.access_pattern_worker]
 }

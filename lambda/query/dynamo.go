@@ -71,7 +71,11 @@ func ListConversions(ctx context.Context) ([]map[string]interface{}, error) {
 	}
 
 	result, err := dynamoClient.Scan(ctx, &dynamodb.ScanInput{
-		TableName: aws.String(tableName),
+		TableName:            aws.String(tableName),
+		ProjectionExpression: aws.String("conversionId, conversionDate, createdAt, #s, optimizationType, tablesExtracted"),
+		ExpressionAttributeNames: map[string]string{
+			"#s": "status",
+		},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("DynamoDB Scan failed: %w", err)

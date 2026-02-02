@@ -64,11 +64,6 @@ func handleListAll(ctx context.Context) (V2Response, error) {
 		})
 	}
 
-	// Parse noSqlSchema for all records
-	for _, record := range records {
-		parseNoSqlSchema(record)
-	}
-
 	return jsonResponse(200, map[string]interface{}{
 		"conversions": records,
 		"count":       len(records),
