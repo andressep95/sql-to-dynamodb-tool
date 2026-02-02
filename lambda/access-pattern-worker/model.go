@@ -2,10 +2,10 @@ package main
 
 // AccessPatternMessage represents the message sent from conversion-worker to access-pattern-worker
 type AccessPatternMessage struct {
-	ConversionID     string         `json:"conversionId"`
-	SQLContent       string         `json:"sqlContent"`
+	ConversionID     string          `json:"conversionId"`
+	SQLContent       string          `json:"sqlContent"`
 	DynamoDBDesign   *DynamoDBDesign `json:"dynamodbDesign"`
-	OptimizationType string         `json:"optimizationType"`
+	OptimizationType string          `json:"optimizationType"`
 }
 
 // AccessPatternResult represents the output from Bedrock for access patterns only
@@ -13,7 +13,6 @@ type AccessPatternResult struct {
 	AccessPatterns              []AccessPattern     `json:"accessPatterns"`
 	AccessPatternImplementation []AccessPatternImpl `json:"accessPatternImplementation"`
 	SampleData                  []SampleDataItem    `json:"sampleData"`
-	Recommendations             []Recommendation    `json:"recommendations"`
 }
 
 // AccessPattern represents a single access pattern
@@ -36,13 +35,6 @@ type AccessPatternImpl struct {
 type SampleDataItem struct {
 	Description string                 `json:"description"`
 	Item        map[string]interface{} `json:"item"`
-}
-
-// Recommendation represents optimization recommendations
-type Recommendation struct {
-	Category    string `json:"category"`
-	Description string `json:"description"`
-	Rationale   string `json:"rationale"`
 }
 
 // DynamoDBDesign represents the base design from conversion-worker
@@ -72,7 +64,6 @@ type DynamoDBDesign struct {
 	} `json:"design"`
 	SampleData                  []SampleDataItem    `json:"sampleData"`
 	AccessPatternImplementation []AccessPatternImpl `json:"accessPatternImplementation"`
-	Recommendations             []Recommendation    `json:"recommendations"`
 }
 
 type KeyDefinition struct {

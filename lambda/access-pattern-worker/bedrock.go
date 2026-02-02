@@ -56,7 +56,7 @@ func buildAccessPatternPrompt(sqlContent string, design *DynamoDBDesign, optimiz
 	designJSON, _ := json.MarshalIndent(design, "", "  ")
 
 	return fmt.Sprintf(`<system>
-You are a DynamoDB access pattern specialist. Your job is to analyze SQL schemas and existing DynamoDB designs to generate comprehensive access patterns, implementations, sample data, and recommendations.
+You are a DynamoDB access pattern specialist. Your job is to analyze SQL schemas and existing DynamoDB designs to generate comprehensive access patterns, implementations and sample data.
 
 ## YOUR FOCUS
 - Generate realistic access patterns based on SQL relationships
@@ -113,12 +113,6 @@ Given the original SQL schema and the DynamoDB design, generate comprehensive ac
 - Demonstrate PK/SK patterns from the design
 - Include GSI attribute values
 - Show edge items for relationships
-
-## RECOMMENDATIONS FOCUS
-- Performance optimizations for the given optimization type
-- Cost reduction strategies
-- Scalability considerations
-- Monitoring and alerting suggestions
 </instructions>
 
 <output_format>
@@ -157,16 +151,9 @@ Respond ONLY with valid JSON:
         "email": "john@example.com"
       }
     }
-  ],
-  "recommendations": [
-    {
-      "category": "Performance",
-      "description": "Enable DynamoDB Accelerator (DAX) for read-heavy workloads",
-      "rationale": "Based on %s optimization, caching will reduce latency and costs"
-    }
   ]
 }
-</output_format>`, optimizationType, sqlContent, string(designJSON), optimizationType)
+</output_format>`, optimizationType, sqlContent, string(designJSON))
 }
 
 func GenerateAccessPatterns(ctx context.Context, sqlContent string, design *DynamoDBDesign, optimizationType string) (*AccessPatternResult, error) {
@@ -308,13 +295,6 @@ func mockAccessPatternResponse() *AccessPatternResult {
 				},
 			},
 		},
-		Recommendations: []Recommendation{
-			{
-				Category:    "Performance",
-				Description: "Consider DAX for read-heavy workloads",
-				Rationale:   "Reduces latency and costs",
-			},
-		},
 	}
 }
 
@@ -327,7 +307,6 @@ func mergeAccessPatterns(baseDesign *DynamoDBDesign, patterns *AccessPatternResu
 	result.Analysis.AccessPatterns = patterns.AccessPatterns
 	result.AccessPatternImplementation = patterns.AccessPatternImplementation
 	result.SampleData = patterns.SampleData
-	result.Recommendations = patterns.Recommendations
 
 	return &result
 }

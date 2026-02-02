@@ -64,12 +64,6 @@ export interface SampleDataItem {
   item: Record<string, any>
 }
 
-export interface Recommendation {
-  category: string
-  description: string
-  rationale: string
-}
-
 export interface DynamoDBDesign {
   analysis: {
     entities: Entity[]
@@ -88,7 +82,6 @@ export interface DynamoDBDesign {
   }
   sampleData: SampleDataItem[]
   accessPatternImplementation: AccessPatternImpl[]
-  recommendations: Recommendation[]
 }
 
 // Legacy interfaces for backward compatibility

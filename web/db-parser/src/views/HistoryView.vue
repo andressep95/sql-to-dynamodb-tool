@@ -206,7 +206,6 @@ function formatSql(sql: string): string {
                     <Tab value="0"><i class="pi pi-server tab-icon"></i> Estructura</Tab>
                     <Tab value="1" v-if="selectedConversion.noSqlSchema.analysis?.accessPatterns?.length"><i class="pi pi-directions tab-icon"></i> Access Patterns</Tab>
                     <Tab value="2" v-if="selectedConversion.noSqlSchema.sampleData?.length"><i class="pi pi-database tab-icon"></i> Sample Data</Tab>
-                    <Tab value="3" v-if="selectedConversion.noSqlSchema.recommendations?.length"><i class="pi pi-lightbulb tab-icon"></i> Recomendaciones</Tab>
                   </TabList>
                   <TabPanels>
                     <!-- Tab: Estructura -->
@@ -348,20 +347,6 @@ function formatSql(sql: string): string {
                           </div>
                           <pre class="sample-json" v-if="sample.item">{{ JSON.stringify(sample.item, null, 2) }}</pre>
                           <p v-else class="sample-empty">Sin datos de ejemplo</p>
-                        </div>
-                      </div>
-                    </TabPanel>
-
-                    <!-- Tab: Recomendaciones -->
-                    <TabPanel value="3">
-                      <div class="recommendations-list">
-                        <div v-for="(rec, idx) in selectedConversion.noSqlSchema.recommendations" :key="idx" class="recommendation-card">
-                          <div class="rec-header">
-                            <i class="pi pi-lightbulb"></i>
-                            <span class="rec-category">{{ rec.category }}</span>
-                          </div>
-                          <p class="rec-description">{{ rec.description }}</p>
-                          <p class="rec-rationale">{{ rec.rationale }}</p>
                         </div>
                       </div>
                     </TabPanel>
