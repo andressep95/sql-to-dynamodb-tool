@@ -104,6 +104,11 @@ variable "access_pattern_queue_arn" {
   type        = string
 }
 
+variable "access_pattern_dlq_arn" {
+  description = "ARN of the SQS access pattern dead-letter queue (for IAM policies)"
+  type        = string
+}
+
 # DynamoDB
 variable "schemas_table_name" {
   description = "Name for the schemas DynamoDB table"

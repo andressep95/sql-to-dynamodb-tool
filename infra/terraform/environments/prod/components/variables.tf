@@ -73,3 +73,9 @@ variable "access_pattern_queue_arn" {
   type        = string
   default     = ""
 }
+
+variable "access_pattern_dlq_arn" {
+  description = "ARN of the SQS access pattern dead-letter queue"
+  type        = string
+  default     = ""
+}

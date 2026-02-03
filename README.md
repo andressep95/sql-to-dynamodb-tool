@@ -27,7 +27,7 @@ Una aplicación web donde el usuario pega sus `CREATE TABLE` statements y obtien
 3. **Conversion Worker** consume el mensaje, invoca **Bedrock (Claude 3.5 Sonnet)** para generar el diseño DynamoDB y actualiza el estado a `DESIGN_COMPLETED`
 4. Se encola un segundo mensaje para el **Access Pattern Worker**, que invoca **Bedrock (Claude 3.5 Haiku)** para generar patrones de acceso y marca la conversión como `COMPLETED`
 5. El usuario consulta el resultado via **Query Handler**
-6. Si cualquier paso falla tras 3 reintentos, el mensaje llega al **DLQ Handler** que marca la conversión como `FAILED`
+6. Si cualquier paso falla tras 3 reintentos, el mensaje llega a su respectiva Dead Letter Queue (**Conversion DLQ** o **Access Pattern DLQ**) y el **DLQ Handler** unificado marca la conversión como `FAILED`
 
 ### Estados de una conversión
 
@@ -51,7 +51,7 @@ PENDING → PROCESSING → DESIGN_COMPLETED → PROCESSING_PATTERNS → COMPLETE
 | Servicio | Uso |
 |---|---|
 | **Amazon DynamoDB** | Tabla `schemas` con TTL de 24 horas y GSI por fecha para listar conversiones del día |
-| **Amazon SQS** | Cola de conversión, cola de access patterns y Dead Letter Queue (DLQ) con 3 reintentos máximos |
+| **Amazon SQS** | Cola de conversión + DLQ, cola de access patterns + DLQ. Cada cola tiene su propia Dead Letter Queue (3 reintentos máximos). Un DLQ Handler unificado consume de ambas DLQs |
 | **Amazon S3** | Hosting de assets estáticos del frontend (SPA) |
 
 ### Networking y Seguridad

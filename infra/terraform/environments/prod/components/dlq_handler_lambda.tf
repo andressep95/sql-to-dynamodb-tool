@@ -49,3 +49,10 @@ resource "aws_lambda_event_source_mapping" "dlq_to_dlq_handler" {
   batch_size       = 1
   enabled          = true
 }
+
+resource "aws_lambda_event_source_mapping" "access_pattern_dlq_to_dlq_handler" {
+  event_source_arn = var.access_pattern_dlq_arn
+  function_name    = module.dlq_handler.function_arn
+  batch_size       = 1
+  enabled          = true
+}

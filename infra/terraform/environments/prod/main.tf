@@ -188,6 +188,7 @@ module "lambda_components" {
   access_pattern_worker_role_arn = aws_iam_role.access_pattern_worker.arn
   access_pattern_queue_url       = module.conversion_queue.access_pattern_queue_url
   access_pattern_queue_arn       = module.conversion_queue.access_pattern_queue_arn
+  access_pattern_dlq_arn         = module.conversion_queue.access_pattern_dlq_arn
 }
 
 # ============================================
@@ -229,6 +230,7 @@ module "shared" {
   sqs_queue_arn            = module.conversion_queue.conversion_queue_arn
   sqs_dlq_arn              = module.conversion_queue.conversion_dlq_arn
   access_pattern_queue_arn = module.conversion_queue.access_pattern_queue_arn
+  access_pattern_dlq_arn   = module.conversion_queue.access_pattern_dlq_arn
 
   # Cloudflare security
   custom_domain                  = var.custom_domain

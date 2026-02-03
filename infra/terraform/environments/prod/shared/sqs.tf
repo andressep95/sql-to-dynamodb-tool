@@ -62,7 +62,8 @@ resource "aws_iam_role_policy" "lambda_sqs_dlq_consume" {
           "sqs:GetQueueAttributes"
         ]
         Resource = [
-          var.sqs_dlq_arn
+          var.sqs_dlq_arn,
+          var.access_pattern_dlq_arn
         ]
       }
     ]
