@@ -1,104 +1,174 @@
 # SQL to DynamoDB Converter
 
-Herramienta serverless que convierte esquemas SQL relacionales a diseños optimizados de DynamoDB usando IA, generando automáticamente tabla designs, índices secundarios globales (GSI) y código Terraform.
+Plataforma serverless que convierte esquemas SQL relacionales a diseños optimizados de Amazon DynamoDB usando inteligencia artificial. Analiza sentencias `CREATE TABLE`, genera table designs con partition/sort keys, índices secundarios globales (GSI), patrones de acceso documentados y código Terraform listo para producción.
 
 ## El Problema
 
-Migrar de bases de datos relacionales (SQL) a DynamoDB requiere:
-
-- Rediseñar esquemas de relacional a NoSQL
-- Identificar patrones de acceso óptimos
-- Crear índices secundarios apropiados
-- Configurar infraestructura como código
-
-Este proceso es complejo, propenso a errores y requiere expertise en modelado DynamoDB.
+Migrar de bases de datos relacionales a DynamoDB es un proceso que requiere rediseñar esquemas completos, identificar patrones de acceso, definir índices secundarios y configurar infraestructura. Este trabajo es manual, propenso a errores y demanda expertise específico en modelado NoSQL.
 
 ## La Solución
 
-Aplicación web que analiza tus `CREATE TABLE` statements SQL y genera:
+Una aplicación web donde el usuario pega sus `CREATE TABLE` statements y obtiene:
 
-- **DynamoDB Table Designs**: Esquemas optimizados con partition/sort keys
-- **Global Secondary Indexes (GSI)**: Recomendaciones basadas en relaciones SQL
-- **Access Patterns**: Documentación de cómo consultar eficientemente
-- **Terraform Code**: IaC listo para desplegar en AWS
-- **Análisis con IA**: Usa Amazon Bedrock (Claude) para optimizaciones inteligentes
-
-## Stack Tecnológico
-
-- **Backend**: AWS Lambda (Go) con ARM64 Graviton2
-- **IA/ML**: Amazon Bedrock (Claude)
-- **Storage**: DynamoDB con TTL de 24 horas
-- **Queue**: Amazon SQS para procesamiento asíncrono
-- **Infraestructura**: Terraform modular (soporta LocalStack para dev, AWS para prod)
-- **API Gateway**: REST v1 (LocalStack) / HTTP v2 (AWS)
-- **Observabilidad**: CloudWatch Logs y métricas
+- **DynamoDB Table Designs** — Esquemas optimizados con partition key y sort key
+- **Global Secondary Indexes (GSI)** — Índices derivados de las relaciones SQL originales
+- **Access Patterns** — Documentación de cómo consultar cada entidad eficientemente
+- **Terraform Code** — Infraestructura como código lista para desplegar
+- **Análisis con IA** — Amazon Bedrock (Claude) genera y optimiza cada conversión
 
 ## Arquitectura
 
 ![Arquitectura AWS](spec/diagram_updated_v2.gif)
 
-El sistema implementa un patrón de procesamiento asíncrono con los siguientes componentes:
+### Flujo de procesamiento
 
-### Componentes principales:
+1. El usuario envía SQL desde el frontend → **API Gateway** → **Process Handler**
+2. Process Handler valida la sintaxis SQL, crea un registro `PENDING` en DynamoDB y encola un mensaje en SQS
+3. **Conversion Worker** consume el mensaje, invoca **Bedrock (Claude 3.5 Sonnet)** para generar el diseño DynamoDB y actualiza el estado a `DESIGN_COMPLETED`
+4. Se encola un segundo mensaje para el **Access Pattern Worker**, que invoca **Bedrock (Claude 3.5 Haiku)** para generar patrones de acceso y marca la conversión como `COMPLETED`
+5. El usuario consulta el resultado via **Query Handler**
+6. Si cualquier paso falla tras 3 reintentos, el mensaje llega al **DLQ Handler** que marca la conversión como `FAILED`
 
-1. **API Gateway**: Punto de entrada para todas las solicitudes HTTP
-2. **Process Handler Lambda**: Valida sintaxis SQL, crea petición en estado PENDING y encola mensaje en SQS
-3. **Query Handler Lambda**: Recupera conversiones de la BD (listado y detalle individual)
-4. **Schemas Table (DynamoDB)**: Almacena conversiones con TTL de 24 horas y GSI por fecha
-5. **Conversion Queue (SQS)**: Desacopla la recepción de solicitudes del procesamiento de IA
-6. **Conversion Worker Lambda**: Consume mensajes de SQS, invoca Bedrock y actualiza resultados en DynamoDB
-7. **Amazon Bedrock (Claude)**: Motor de IA que genera diseños optimizados de DynamoDB
-8. **CloudWatch Logs**: Registro centralizado de todas las operaciones
+### Estados de una conversión
 
-### Flujo de procesamiento:
+```
+PENDING → PROCESSING → DESIGN_COMPLETED → PROCESSING_PATTERNS → COMPLETED
+                ↓                                    ↓
+              FAILED                               FAILED
+```
 
-1. Usuario envía SQL via API Gateway → Process Handler
-2. Process Handler valida sintaxis SQL
-3. Process Handler crea petición en estado PENDING en DynamoDB
-4. Mensaje se encola en SQS
-5. Conversion Worker consume mensaje y actualiza estado a PROCESSING
-6. Worker invoca Bedrock para análisis de IA
-7. Resultado se almacena con estado COMPLETED o FAILED
-8. Usuario consulta resultado via API Gateway → Query Handler
-9. CloudWatch registra todas las operaciones
+## Servicios AWS
+
+### Compute
+
+| Servicio | Uso |
+|---|---|
+| **AWS Lambda (Go, ARM64)** | 5 funciones: Process Handler, Conversion Worker, Access Pattern Worker, Query Handler, DLQ Handler |
+| **Amazon Bedrock** | Claude 3.5 Sonnet v2 para conversión de esquemas, Claude 3.5 Haiku para generación de access patterns |
+
+### Storage y Messaging
+
+| Servicio | Uso |
+|---|---|
+| **Amazon DynamoDB** | Tabla `schemas` con TTL de 24 horas y GSI por fecha para listar conversiones del día |
+| **Amazon SQS** | Cola de conversión, cola de access patterns y Dead Letter Queue (DLQ) con 3 reintentos máximos |
+| **Amazon S3** | Hosting de assets estáticos del frontend (SPA) |
+
+### Networking y Seguridad
+
+| Servicio | Uso |
+|---|---|
+| **Amazon CloudFront** | CDN con dos orígenes: S3 (frontend) y API Gateway (API). Origin Access Control (OAC) para S3 |
+| **AWS Certificate Manager (ACM)** | Certificado SSL para el dominio personalizado, validado por DNS |
+| **AWS API Gateway (HTTP v2)** | Punto de entrada REST con rutas para `/api/v1/schemas` |
+| **AWS IAM** | Un rol por Lambda con políticas de mínimo privilegio |
+
+### Observabilidad
+
+| Servicio | Uso |
+|---|---|
+| **Amazon CloudWatch** | Logs centralizados de todas las funciones Lambda |
+
+## Cloudflare + CloudFront: Seguridad perimetral
+
+El frontend se sirve a través de **Cloudflare → CloudFront → S3/API Gateway**, con dos capas de protección:
+
+### Certificado ACM + Full (strict) SSL
+
+Cloudflare opera en modo **Full (strict)**, lo que requiere un certificado válido en el origen. ACM provee un certificado para `app-sql.cloudcentinel.com` que CloudFront presenta en cada conexión TLS. La validación del certificado es por DNS (CNAME en Cloudflare).
+
+### Header secreto con CloudFront Function
+
+Para evitar que alguien acceda directamente a CloudFront bypasseando Cloudflare, una **CloudFront Function** valida un header secreto en cada request:
+
+```js
+function handler(event) {
+  var request = event.request;
+  var secret = request.headers['x-origin-secret'];
+  if (!secret || secret.value !== 'EXPECTED_VALUE') {
+    return { statusCode: 403, statusDescription: 'Forbidden' };
+  }
+  return request;
+}
+```
+
+Cloudflare inyecta este header automáticamente via **Transform Rule** antes de enviar el request a CloudFront. Cualquier request que llegue sin el header recibe un `403 Forbidden`.
+
+**Resultado:**
+- `curl https://<cloudfront-domain>/` → `403`
+- `curl https://app-sql.cloudcentinel.com/` → `200`
+
+## Stack Tecnológico
+
+| Capa | Tecnología |
+|---|---|
+| **Frontend** | Vue 3, PrimeVue, Pinia, Vue Router, TypeScript, Vite |
+| **Backend** | Go (ARM64 Graviton), AWS Lambda |
+| **IA** | Amazon Bedrock (Claude 3.5 Sonnet v2, Claude 3.5 Haiku) |
+| **Infraestructura** | Terraform modular (10 módulos), S3 backend para state |
+| **CDN/Security** | Cloudflare (proxy, WAF, Transform Rules) + CloudFront + ACM |
+| **Dev local** | LocalStack Pro con API Gateway REST v1 |
 
 ## Estructura del Proyecto
 
 ```
-├── lambda/           # Funciones Go (converter, frontend-proxy)
-├── web/              # Frontend SPA
-├── infra/terraform/  # Módulos IaC
-│   ├── modules/      # Lambda, API Gateway, IAM, S3, Bedrock
-│   └── environments/ # Configuraciones dev/prod
-└── spec/             # Requirements y plan de implementación
+├── lambda/                        # Funciones Lambda en Go
+│   ├── diagrams/                  # Process Handler — validación SQL y encolado
+│   ├── conversion-worker/         # Conversión SQL → DynamoDB via Bedrock
+│   ├── access-pattern-worker/     # Generación de access patterns via Bedrock
+│   ├── query/                     # Consulta de conversiones
+│   └── dlq-handler/               # Manejo de mensajes fallidos
+├── web/db-parser/                 # Frontend Vue 3 SPA
+├── infra/terraform/
+│   ├── modules/                   # Módulos reutilizables
+│   │   ├── lambda/                # Configuración Lambda genérica
+│   │   ├── gateway/               # API Gateway (HTTP v2 + REST v1 + wrapper)
+│   │   ├── dynamodb/              # Tabla con TTL y GSI
+│   │   ├── sqs/                   # Colas + DLQ
+│   │   ├── s3/                    # Bucket frontend con upload de assets
+│   │   ├── cloudfront/            # CDN + OAC + ACM + CloudFront Function
+│   │   ├── bedrock/               # Model access y políticas IAM
+│   │   └── iam/                   # Roles y políticas por Lambda
+│   ├── environments/
+│   │   ├── dev/                   # LocalStack (desarrollo local)
+│   │   └── prod/                  # AWS (producción)
+│   └── backend/                   # S3 backend para Terraform state
+└── spec/                          # Requerimientos y diagramas
 ```
-
-## Features
-
-- **Procesamiento Asíncrono**: Desacoplamiento con SQS para manejar largos tiempos de IA
-- **Conversiones del Día**: Modelo público efímero con TTL de 24 horas
-- **Validación SQL**: Detecta errores de sintaxis antes de convertir
-- **Optimización configurable**: Read-heavy, write-heavy, balanced
-- **Single-table design**: Sugiere patrones de tabla única cuando aplica
-- **Estados de conversión**: PENDING → PROCESSING → COMPLETED/FAILED
-- **Seguridad**: Zero-trust, HTTPS end-to-end, IAM least privilege
-- **Observabilidad**: CloudWatch logs, métricas, alarmas automáticas
-- **Multi-ambiente**: LocalStack (dev) y AWS (producción)
-
-## Casos de Uso
-
-- Migración de aplicaciones legacy SQL a serverless DynamoDB
-- Aprendizaje de modelado NoSQL desde esquemas relacionales conocidos
-- Generación rápida de prototipos de infraestructura DynamoDB
-- Análisis de patrones de acceso para schemas existentes
 
 ## API Endpoints
 
-- `POST /convert` - Envía esquema SQL, retorna `{id, status: "PENDING"}`
-- `GET /conversions` - Lista todas las conversiones del día actual
-- `GET /conversions/{id}` - Obtiene detalle de una conversión específica
-- `GET /health` - Verifica disponibilidad del sistema
+| Método | Ruta | Descripción |
+|---|---|---|
+| `POST` | `/api/v1/schemas` | Envía SQL, retorna `{id, status: "PENDING"}` |
+| `GET` | `/api/v1/schemas` | Lista conversiones del día actual |
+| `GET` | `/api/v1/schemas/{id}` | Detalle de una conversión específica |
 
-## Desarrollado con
+## Quick Start
 
-AWS Lambda • Amazon Bedrock • DynamoDB • SQS • Terraform • Go
+```bash
+# Construir todas las Lambdas
+make lambda
+
+# Construir frontend
+make frontend
+
+# Deploy a producción
+make prod
+
+# Deploy frontend a S3 + invalidar cache CloudFront
+make deploy-frontend
+```
+
+## Desarrollo Local
+
+```bash
+# Levantar LocalStack
+make docker-up
+
+# Desplegar infraestructura local
+make localstack
+
+# Destruir entorno local
+make localstack-destroy
+```
