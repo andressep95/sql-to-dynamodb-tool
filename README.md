@@ -18,7 +18,7 @@ Una aplicación web donde el usuario pega sus `CREATE TABLE` statements y obtien
 
 ## Arquitectura
 
-![Arquitectura AWS](spec/diagram_updated_v2.gif)
+![Arquitectura AWS](spec/diagram_updated_v3.gif)
 
 ### Flujo de procesamiento
 
@@ -41,32 +41,32 @@ PENDING → PROCESSING → DESIGN_COMPLETED → PROCESSING_PATTERNS → COMPLETE
 
 ### Compute
 
-| Servicio | Uso |
-|---|---|
-| **AWS Lambda (Go, ARM64)** | 5 funciones: Process Handler, Conversion Worker, Access Pattern Worker, Query Handler, DLQ Handler |
-| **Amazon Bedrock** | Claude 3.5 Sonnet v2 para conversión de esquemas, Claude 3.5 Haiku para generación de access patterns |
+| Servicio                   | Uso                                                                                                   |
+| -------------------------- | ----------------------------------------------------------------------------------------------------- |
+| **AWS Lambda (Go, ARM64)** | 5 funciones: Process Handler, Conversion Worker, Access Pattern Worker, Query Handler, DLQ Handler    |
+| **Amazon Bedrock**         | Claude 3.5 Sonnet v2 para conversión de esquemas, Claude 3.5 Haiku para generación de access patterns |
 
 ### Storage y Messaging
 
-| Servicio | Uso |
-|---|---|
-| **Amazon DynamoDB** | Tabla `schemas` con TTL de 24 horas y GSI por fecha para listar conversiones del día |
-| **Amazon SQS** | Cola de conversión + DLQ, cola de access patterns + DLQ. Cada cola tiene su propia Dead Letter Queue (3 reintentos máximos). Un DLQ Handler unificado consume de ambas DLQs |
-| **Amazon S3** | Hosting de assets estáticos del frontend (SPA) |
+| Servicio            | Uso                                                                                                                                                                         |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Amazon DynamoDB** | Tabla `schemas` con TTL de 24 horas y GSI por fecha para listar conversiones del día                                                                                        |
+| **Amazon SQS**      | Cola de conversión + DLQ, cola de access patterns + DLQ. Cada cola tiene su propia Dead Letter Queue (3 reintentos máximos). Un DLQ Handler unificado consume de ambas DLQs |
+| **Amazon S3**       | Hosting de assets estáticos del frontend (SPA)                                                                                                                              |
 
 ### Networking y Seguridad
 
-| Servicio | Uso |
-|---|---|
-| **Amazon CloudFront** | CDN con dos orígenes: S3 (frontend) y API Gateway (API). Origin Access Control (OAC) para S3 |
-| **AWS Certificate Manager (ACM)** | Certificado SSL para el dominio personalizado, validado por DNS |
-| **AWS API Gateway (HTTP v2)** | Punto de entrada REST con rutas para `/api/v1/schemas` |
-| **AWS IAM** | Un rol por Lambda con políticas de mínimo privilegio |
+| Servicio                          | Uso                                                                                          |
+| --------------------------------- | -------------------------------------------------------------------------------------------- |
+| **Amazon CloudFront**             | CDN con dos orígenes: S3 (frontend) y API Gateway (API). Origin Access Control (OAC) para S3 |
+| **AWS Certificate Manager (ACM)** | Certificado SSL para el dominio personalizado, validado por DNS                              |
+| **AWS API Gateway (HTTP v2)**     | Punto de entrada REST con rutas para `/api/v1/schemas`                                       |
+| **AWS IAM**                       | Un rol por Lambda con políticas de mínimo privilegio                                         |
 
 ### Observabilidad
 
-| Servicio | Uso |
-|---|---|
+| Servicio              | Uso                                              |
+| --------------------- | ------------------------------------------------ |
 | **Amazon CloudWatch** | Logs centralizados de todas las funciones Lambda |
 
 ## Cloudflare + CloudFront: Seguridad perimetral
@@ -84,9 +84,9 @@ Para evitar que alguien acceda directamente a CloudFront bypasseando Cloudflare,
 ```js
 function handler(event) {
   var request = event.request;
-  var secret = request.headers['x-origin-secret'];
-  if (!secret || secret.value !== 'EXPECTED_VALUE') {
-    return { statusCode: 403, statusDescription: 'Forbidden' };
+  var secret = request.headers["x-origin-secret"];
+  if (!secret || secret.value !== "EXPECTED_VALUE") {
+    return { statusCode: 403, statusDescription: "Forbidden" };
   }
   return request;
 }
@@ -95,19 +95,20 @@ function handler(event) {
 Cloudflare inyecta este header automáticamente via **Transform Rule** antes de enviar el request a CloudFront. Cualquier request que llegue sin el header recibe un `403 Forbidden`.
 
 **Resultado:**
+
 - `curl https://<cloudfront-domain>/` → `403`
 - `curl https://app-sql.cloudcentinel.com/` → `200`
 
 ## Stack Tecnológico
 
-| Capa | Tecnología |
-|---|---|
-| **Frontend** | Vue 3, PrimeVue, Pinia, Vue Router, TypeScript, Vite |
-| **Backend** | Go (ARM64 Graviton), AWS Lambda |
-| **IA** | Amazon Bedrock (Claude 3.5 Sonnet v2, Claude 3.5 Haiku) |
-| **Infraestructura** | Terraform modular (10 módulos), S3 backend para state |
-| **CDN/Security** | Cloudflare (proxy, WAF, Transform Rules) + CloudFront + ACM |
-| **Dev local** | LocalStack Pro con API Gateway REST v1 |
+| Capa                | Tecnología                                                  |
+| ------------------- | ----------------------------------------------------------- |
+| **Frontend**        | Vue 3, PrimeVue, Pinia, Vue Router, TypeScript, Vite        |
+| **Backend**         | Go (ARM64 Graviton), AWS Lambda                             |
+| **IA**              | Amazon Bedrock (Claude 3.5 Sonnet v2, Claude 3.5 Haiku)     |
+| **Infraestructura** | Terraform modular (10 módulos), S3 backend para state       |
+| **CDN/Security**    | Cloudflare (proxy, WAF, Transform Rules) + CloudFront + ACM |
+| **Dev local**       | LocalStack Pro con API Gateway REST v1                      |
 
 ## Estructura del Proyecto
 
@@ -138,11 +139,11 @@ Cloudflare inyecta este header automáticamente via **Transform Rule** antes de 
 
 ## API Endpoints
 
-| Método | Ruta | Descripción |
-|---|---|---|
-| `POST` | `/api/v1/schemas` | Envía SQL, retorna `{id, status: "PENDING"}` |
-| `GET` | `/api/v1/schemas` | Lista conversiones del día actual |
-| `GET` | `/api/v1/schemas/{id}` | Detalle de una conversión específica |
+| Método | Ruta                   | Descripción                                  |
+| ------ | ---------------------- | -------------------------------------------- |
+| `POST` | `/api/v1/schemas`      | Envía SQL, retorna `{id, status: "PENDING"}` |
+| `GET`  | `/api/v1/schemas`      | Lista conversiones del día actual            |
+| `GET`  | `/api/v1/schemas/{id}` | Detalle de una conversión específica         |
 
 ## Quick Start
 
