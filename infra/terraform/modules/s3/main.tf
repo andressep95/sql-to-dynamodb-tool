@@ -48,3 +48,40 @@ resource "aws_s3_object" "html_objects" {
 
   etag = filemd5(each.value)
 }
+
+# Archivos estáticos desde un directorio (frontend build)
+locals {
+  content_type_map = {
+    ".html" = "text/html"
+    ".css"  = "text/css"
+    ".js"   = "application/javascript"
+    ".json" = "application/json"
+    ".png"  = "image/png"
+    ".jpg"  = "image/jpeg"
+    ".jpeg" = "image/jpeg"
+    ".gif"  = "image/gif"
+    ".svg"  = "image/svg+xml"
+    ".ico"  = "image/x-icon"
+    ".woff" = "font/woff"
+    ".woff2" = "font/woff2"
+    ".ttf"  = "font/ttf"
+    ".eot"  = "application/vnd.ms-fontobject"
+    ".map"  = "application/json"
+    ".txt"  = "text/plain"
+    ".xml"  = "application/xml"
+    ".webp" = "image/webp"
+  }
+
+  static_files = var.static_files_path != "" ? fileset(var.static_files_path, "**") : toset([])
+}
+
+resource "aws_s3_object" "static_files" {
+  for_each = local.static_files
+
+  bucket       = aws_s3_bucket.this.id
+  key          = each.value
+  source       = "${var.static_files_path}/${each.value}"
+  content_type = lookup(local.content_type_map, regex("\\.[^.]+$", each.value), "application/octet-stream")
+
+  etag = filemd5("${var.static_files_path}/${each.value}")
+}

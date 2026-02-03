@@ -10,6 +10,9 @@ import (
 func ValidateSQL(sqlContent string) ValidationResult {
 	result := ValidationResult{IsValid: true}
 
+	// 0. Eliminar comentarios SQL
+	sqlContent = stripSQLComments(sqlContent)
+
 	// 1. Contenido vacio
 	if strings.TrimSpace(sqlContent) == "" {
 		return validationFailed(ValidationDetail{

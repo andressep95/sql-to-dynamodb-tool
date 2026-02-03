@@ -22,3 +22,19 @@ output "schemas_table_arn" {
   description = "ARN of the schemas DynamoDB table"
   value       = module.schemas_table.table_arn
 }
+
+# CloudFront outputs
+output "cloudfront_distribution_domain" {
+  description = "Domain name of the CloudFront distribution"
+  value       = module.cloudfront.distribution_domain_name
+}
+
+output "cloudfront_distribution_id" {
+  description = "ID of the CloudFront distribution"
+  value       = module.cloudfront.distribution_id
+}
+
+output "frontend_bucket_name" {
+  description = "Name of the frontend S3 bucket"
+  value       = module.frontend_bucket.bucket_name
+}

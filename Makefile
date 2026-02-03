@@ -1,4 +1,4 @@
-.PHONY: lambda backend localstack localstack-destroy prod prod-plan prod-destroy docker-up docker-down validate-bedrock
+.PHONY: lambda frontend deploy-frontend backend localstack localstack-destroy prod prod-plan prod-destroy docker-up docker-down validate-bedrock
 
 docker-up:
 	@echo "🐳 Starting LocalStack Pro..."
@@ -68,6 +68,19 @@ localstack-destroy:
 		-var="aws_access_key_id=$$AWS_ACCESS_KEY_ID" \
 		-var="aws_secret_access_key=$$AWS_SECRET_ACCESS_KEY"
 	@echo "✅ LocalStack destroyed"
+
+frontend:
+	@echo "🔨 Building frontend..."
+	cd web/db-parser && npm install && npm run build
+	@echo "✅ Frontend built"
+
+deploy-frontend: frontend
+	@echo "📤 Deploying frontend to S3..."
+	@BUCKET_NAME=$$(cd infra/terraform/environments/prod && terraform output -raw frontend_bucket_name) && \
+	DISTRIBUTION_ID=$$(cd infra/terraform/environments/prod && terraform output -raw cloudfront_distribution_id) && \
+	aws s3 sync web/db-parser/dist/ s3://$$BUCKET_NAME --delete && \
+	aws cloudfront create-invalidation --distribution-id $$DISTRIBUTION_ID --paths "/*" > /dev/null
+	@echo "✅ Frontend deployed and cache invalidated"
 
 ## SOLO PARA PRODUCCION
 backend:

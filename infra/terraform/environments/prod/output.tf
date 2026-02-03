@@ -66,6 +66,22 @@ output "sqs_queue_arn" {
   value       = module.conversion_queue.queue_arn
 }
 
+# CloudFront outputs
+output "cloudfront_distribution_domain" {
+  description = "Domain name of the CloudFront distribution"
+  value       = module.shared.cloudfront_distribution_domain
+}
+
+output "cloudfront_distribution_id" {
+  description = "ID of the CloudFront distribution"
+  value       = module.shared.cloudfront_distribution_id
+}
+
+output "frontend_bucket_name" {
+  description = "Name of the frontend S3 bucket"
+  value       = module.shared.frontend_bucket_name
+}
+
 # Conversion Worker outputs
 output "worker_function_name" {
   description = "Name of the conversion worker Lambda"

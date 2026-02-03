@@ -56,10 +56,63 @@ var postgresDataTypes = map[string]bool{
 }
 
 // ============================================================================
+// ELIMINACIÓN DE COMENTARIOS SQL
+// ============================================================================
+
+func stripSQLComments(sql string) string {
+	var result strings.Builder
+	i := 0
+	inSingleQuote := false
+
+	for i < len(sql) {
+		// Manejar strings entre comillas simples (no eliminar contenido dentro)
+		if sql[i] == '\'' {
+			inSingleQuote = !inSingleQuote
+			result.WriteByte(sql[i])
+			i++
+			continue
+		}
+
+		if inSingleQuote {
+			result.WriteByte(sql[i])
+			i++
+			continue
+		}
+
+		// Comentario de línea: --
+		if i+1 < len(sql) && sql[i] == '-' && sql[i+1] == '-' {
+			for i < len(sql) && sql[i] != '\n' {
+				i++
+			}
+			continue
+		}
+
+		// Comentario de bloque: /* ... */
+		if i+1 < len(sql) && sql[i] == '/' && sql[i+1] == '*' {
+			i += 2
+			for i+1 < len(sql) && !(sql[i] == '*' && sql[i+1] == '/') {
+				i++
+			}
+			if i+1 < len(sql) {
+				i += 2 // saltar */
+			}
+			continue
+		}
+
+		result.WriteByte(sql[i])
+		i++
+	}
+
+	return result.String()
+}
+
+// ============================================================================
 // VALIDACIÓN PRINCIPAL
 // ============================================================================
 
 func isValidSchema(schema string) bool {
+	schema = stripSQLComments(schema)
+
 	// 1. Debe contener al menos un CREATE TABLE
 	if !containsCreateTableStatement(schema) {
 		return false

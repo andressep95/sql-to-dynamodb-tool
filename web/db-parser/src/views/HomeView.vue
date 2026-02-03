@@ -13,6 +13,9 @@ const toast = useToast()
 const sqlInput = ref('')
 const loading = ref(false)
 const successModalVisible = ref(false)
+const errorModalVisible = ref(false)
+const errorMessage = ref('')
+const errorDetails = ref<{ message: string; severity: string; table?: string; column?: string }[]>([])
 
 const optimizationOptions = [
   { label: 'Balanced', value: 'balanced' },
@@ -38,8 +41,14 @@ async function handleParse() {
     })
     successModalVisible.value = true
     sqlInput.value = ''
-  } catch {
-    toast.add({ severity: 'error', summary: 'Error', detail: 'Error al enviar la consulta', life: 3000 })
+  } catch (err: any) {
+    if (err.details?.length) {
+      errorMessage.value = err.message
+      errorDetails.value = err.details
+      errorModalVisible.value = true
+    } else {
+      toast.add({ severity: 'error', summary: 'Error', detail: err.message || 'Error al enviar la consulta', life: 5000 })
+    }
   } finally {
     loading.value = false
   }
@@ -75,6 +84,33 @@ async function handleParse() {
         </div>
       </div>
     </div>
+
+    <!-- Error Modal -->
+    <Dialog
+      v-model:visible="errorModalVisible"
+      header="Errores de Validación SQL"
+      modal
+      dismissableMask
+      :closable="true"
+      :style="{ width: '600px' }"
+      :breakpoints="{ '768px': '90vw' }"
+    >
+      <div class="error-content">
+        <i class="pi pi-times-circle error-icon"></i>
+        <p class="error-summary">{{ errorMessage }}</p>
+        <ul class="error-list">
+          <li v-for="(detail, index) in errorDetails" :key="index">
+            <span class="error-location" v-if="detail.table">
+              <strong>{{ detail.table }}</strong><span v-if="detail.column">.{{ detail.column }}</span>:
+            </span>
+            {{ detail.message }}
+          </li>
+        </ul>
+      </div>
+      <template #footer>
+        <Button label="Cerrar" icon="pi pi-times" severity="secondary" @click="errorModalVisible = false" />
+      </template>
+    </Dialog>
 
     <!-- Success Modal -->
     <Dialog
@@ -140,6 +176,51 @@ h2 {
 
 .optimization-select {
   min-width: 200px;
+}
+
+/* Error modal */
+.error-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.75rem;
+  padding: 1rem 0;
+}
+
+.error-icon {
+  font-size: 3rem;
+  color: #ef4444;
+}
+
+.error-summary {
+  margin: 0;
+  font-weight: 600;
+  color: #111827;
+}
+
+.error-list {
+  text-align: left;
+  width: 100%;
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.error-list li {
+  background: #fef2f2;
+  border-left: 3px solid #ef4444;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  color: #991b1b;
+}
+
+.error-location {
+  color: #b91c1c;
 }
 
 /* Success modal */

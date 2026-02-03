@@ -31,6 +31,13 @@ EOF
   default     = {}
 }
 
+variable "static_files_path" {
+  description = "Path to a directory of static files to upload to the bucket. All files are uploaded with auto-detected content types."
+  type        = string
+  default     = ""
+}
+
+
 variable "tags" {
   description = "Tags applied to the bucket"
   type        = map(string)
