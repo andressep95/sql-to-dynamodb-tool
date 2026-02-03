@@ -109,3 +109,16 @@ variable "schemas_table_name" {
   description = "Name for the schemas DynamoDB table"
   type        = string
 }
+
+variable "custom_domain" {
+  description = "Custom domain name for the CloudFront distribution"
+  type        = string
+  default     = ""
+}
+
+variable "cloudflare_secret_header_value" {
+  description = "Secret value for X-Cf-Secret header validation"
+  type        = string
+  sensitive   = true
+  default     = ""
+}

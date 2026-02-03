@@ -229,6 +229,10 @@ module "shared" {
   sqs_queue_arn            = module.conversion_queue.conversion_queue_arn
   sqs_dlq_arn              = module.conversion_queue.conversion_dlq_arn
   access_pattern_queue_arn = module.conversion_queue.access_pattern_queue_arn
+
+  # Cloudflare security
+  custom_domain                  = var.custom_domain
+  cloudflare_secret_header_value = var.cloudflare_secret_header_value
 }
 
 # ============================================

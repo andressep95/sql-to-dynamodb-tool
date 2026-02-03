@@ -2,6 +2,57 @@ locals {
   s3_origin_id          = "${var.project_name}-s3-origin"
   api_gateway_origin_id = "${var.project_name}-api-origin"
   api_gateway_domain    = replace(replace(var.api_gateway_endpoint, "https://", ""), "/", "")
+  use_custom_domain     = var.custom_domain != ""
+  use_secret_header     = var.cloudflare_secret_header_value != ""
+}
+
+# ============================================
+# ACM Certificate (conditional on custom_domain)
+# ============================================
+
+resource "aws_acm_certificate" "this" {
+  count             = local.use_custom_domain ? 1 : 0
+  domain_name       = var.custom_domain
+  validation_method = "DNS"
+
+  tags = var.tags
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_acm_certificate_validation" "this" {
+  count           = local.use_custom_domain ? 1 : 0
+  certificate_arn = aws_acm_certificate.this[0].arn
+}
+
+# ============================================
+# CloudFront Function — validate X-Cf-Secret
+# ============================================
+
+resource "aws_cloudfront_function" "verify_cf_secret" {
+  count   = local.use_secret_header ? 1 : 0
+  name    = "${var.environment}-${var.project_name}-verify-cf-secret"
+  runtime = "cloudfront-js-2.0"
+  comment = "Validates X-Cf-Secret header from Cloudflare"
+  publish = true
+
+  code = <<-EOF
+    function handler(event) {
+      var request = event.request;
+      var secret = request.headers['x-origin-secret'];
+      var expected = '${var.cloudflare_secret_header_value}';
+      if (!secret || secret.value !== expected) {
+        return {
+          statusCode: 403,
+          statusDescription: 'Forbidden',
+          body: { encoding: 'text', data: 'Forbidden' }
+        };
+      }
+      return request;
+    }
+  EOF
 }
 
 # ============================================
@@ -26,6 +77,7 @@ resource "aws_cloudfront_distribution" "this" {
   default_root_object = var.default_root_object
   price_class         = var.price_class
   comment             = "${var.environment} ${var.project_name} distribution"
+  aliases             = local.use_custom_domain ? [var.custom_domain] : []
 
   # Origin 1: S3 (default)
   origin {
@@ -66,6 +118,14 @@ resource "aws_cloudfront_distribution" "this" {
     default_ttl = 3600
     max_ttl     = 86400
     compress    = true
+
+    dynamic "function_association" {
+      for_each = local.use_secret_header ? [1] : []
+      content {
+        event_type   = "viewer-request"
+        function_arn = aws_cloudfront_function.verify_cf_secret[0].arn
+      }
+    }
   }
 
   # Ordered cache behavior: API Gateway (no caching)
@@ -80,6 +140,14 @@ resource "aws_cloudfront_distribution" "this" {
     origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer_except_host_header.id
 
     compress = true
+
+    dynamic "function_association" {
+      for_each = local.use_secret_header ? [1] : []
+      content {
+        event_type   = "viewer-request"
+        function_arn = aws_cloudfront_function.verify_cf_secret[0].arn
+      }
+    }
   }
 
   # SPA routing: redirect 403/404 to index.html
@@ -103,8 +171,20 @@ resource "aws_cloudfront_distribution" "this" {
     }
   }
 
-  viewer_certificate {
-    cloudfront_default_certificate = true
+  dynamic "viewer_certificate" {
+    for_each = local.use_custom_domain ? [1] : []
+    content {
+      acm_certificate_arn      = aws_acm_certificate_validation.this[0].certificate_arn
+      ssl_support_method       = "sni-only"
+      minimum_protocol_version = "TLSv1.2_2021"
+    }
+  }
+
+  dynamic "viewer_certificate" {
+    for_each = local.use_custom_domain ? [] : [1]
+    content {
+      cloudfront_default_certificate = true
+    }
   }
 
   tags = var.tags

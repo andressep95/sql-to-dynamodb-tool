@@ -51,3 +51,16 @@ variable "static_files_etags" {
   type        = map(string)
   default     = {}
 }
+
+variable "custom_domain" {
+  description = "Custom domain name for the CloudFront distribution (e.g. app-sql.cloudcentinel.com)"
+  type        = string
+  default     = ""
+}
+
+variable "cloudflare_secret_header_value" {
+  description = "Secret value for X-Cf-Secret header validation (Cloudflare → CloudFront)"
+  type        = string
+  sensitive   = true
+  default     = ""
+}

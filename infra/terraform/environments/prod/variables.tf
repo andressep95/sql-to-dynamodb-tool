@@ -57,3 +57,15 @@ variable "common_tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "custom_domain" {
+  description = "Custom domain name for the CloudFront distribution"
+  type        = string
+  default     = "app-sql.cloudcentinel.com"
+}
+
+variable "cloudflare_secret_header_value" {
+  description = "Secret value for X-Cf-Secret header validation (Cloudflare → CloudFront)"
+  type        = string
+  sensitive   = true
+}

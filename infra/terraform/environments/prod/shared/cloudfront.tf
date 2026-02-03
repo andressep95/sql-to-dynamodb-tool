@@ -12,4 +12,7 @@ module "cloudfront" {
   environment  = var.environment
   project_name = "sql-to-nosql"
   tags         = var.common_tags
+
+  custom_domain                  = var.custom_domain
+  cloudflare_secret_header_value = var.cloudflare_secret_header_value
 }

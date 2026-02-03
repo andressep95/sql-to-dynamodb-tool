@@ -91,12 +91,18 @@ backend:
 
 prod-plan:
 	@echo "📋 Planning production deployment..."
+	@if [ -f .env ]; then \
+		export $$(grep -v '^#' .env | grep -v '^$$' | xargs); \
+	fi; \
 	cd infra/terraform/environments/prod && \
 	terraform init && terraform plan
 	@echo "✅ Plan complete. Review changes above."
 
 prod:
 	@echo "🔨 Deploying to production..."
+	@if [ -f .env ]; then \
+		export $$(grep -v '^#' .env | grep -v '^$$' | xargs); \
+	fi; \
 	cd infra/terraform/environments/prod && \
 	terraform init && terraform apply
 	@echo "✅ Production deployed"
@@ -109,6 +115,9 @@ validate-bedrock:
 prod-destroy:
 	@echo "⚠️  Destroying production environment..."
 	@read -p "Are you sure? [y/N] " confirm && [ "$$confirm" = "y" ] || exit 1
+	@if [ -f .env ]; then \
+		export $$(grep -v '^#' .env | grep -v '^$$' | xargs); \
+	fi; \
 	cd infra/terraform/environments/prod && \
 	terraform destroy -auto-approve
 	@echo "✅ Production destroyed"

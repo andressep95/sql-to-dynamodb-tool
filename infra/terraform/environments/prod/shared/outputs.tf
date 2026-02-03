@@ -38,3 +38,8 @@ output "frontend_bucket_name" {
   description = "Name of the frontend S3 bucket"
   value       = module.frontend_bucket.bucket_name
 }
+
+output "acm_certificate_validation_records" {
+  description = "DNS records required to validate the ACM certificate"
+  value       = module.cloudfront.acm_certificate_validation_records
+}

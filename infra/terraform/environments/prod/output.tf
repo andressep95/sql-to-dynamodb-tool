@@ -92,3 +92,9 @@ output "worker_function_arn" {
   description = "ARN of the conversion worker Lambda"
   value       = module.lambda_components.worker_function_arn
 }
+
+# ACM outputs
+output "acm_certificate_validation_records" {
+  description = "DNS records to add in Cloudflare for ACM certificate validation"
+  value       = module.shared.acm_certificate_validation_records
+}
