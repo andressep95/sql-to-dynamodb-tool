@@ -70,9 +70,9 @@ locals {
   schemas_table_name = "${var.environment}-${var.schemas_table_name}"
 
   # Per-Lambda role names
-  process_handler_role_name   = "${local.project_name}-${local.environment}-process-handler-role"
-  conversion_worker_role_name = "${local.project_name}-${local.environment}-conversion-worker-role"
-  query_handler_role_name     = "${local.project_name}-${local.environment}-query-handler-role"
+  process_handler_role_name       = "${local.project_name}-${local.environment}-process-handler-role"
+  conversion_worker_role_name     = "${local.project_name}-${local.environment}-conversion-worker-role"
+  query_handler_role_name         = "${local.project_name}-${local.environment}-query-handler-role"
   dlq_handler_role_name           = "${local.project_name}-${local.environment}-dlq-handler-role"
   access_pattern_worker_role_name = "${local.project_name}-${local.environment}-access-pattern-worker-role"
 }
@@ -161,11 +161,16 @@ module "conversion_queue" {
 
   queue_name = "${var.environment}-conversion-queue"
 
-  visibility_timeout_seconds = 180
+  visibility_timeout_seconds        = 180
   access_pattern_visibility_timeout = 120
-  message_retention_seconds  = 345600 # 4 days
-  receive_wait_time_seconds  = 20     # Long polling
-  max_receive_count          = 3
+  message_retention_seconds         = 345600 # 4 days
+  receive_wait_time_seconds         = 20     # Long polling
+  max_receive_count                 = 3
+
+  # CloudWatch alarms
+  create_alarms           = true
+  alarm_sns_topic_arns    = [module.shared.sns_topic_arn]
+  max_message_age_seconds = 3600 # 1 hour
 
   tags = local.common_tags
 }
@@ -217,9 +222,9 @@ module "shared" {
   stage_name       = var.environment
 
   # Lambda IAM role names for policy attachments (per-Lambda)
-  process_handler_role_name   = aws_iam_role.process_handler.name
-  conversion_worker_role_name = aws_iam_role.conversion_worker.name
-  query_handler_role_name     = aws_iam_role.query_handler.name
+  process_handler_role_name       = aws_iam_role.process_handler.name
+  conversion_worker_role_name     = aws_iam_role.conversion_worker.name
+  query_handler_role_name         = aws_iam_role.query_handler.name
   dlq_handler_role_name           = aws_iam_role.dlq_handler.name
   access_pattern_worker_role_name = aws_iam_role.access_pattern_worker.name
 

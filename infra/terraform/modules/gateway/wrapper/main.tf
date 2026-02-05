@@ -35,4 +35,12 @@ module "http_v2" {
 
   routes = var.routes
   tags   = var.tags
+
+  # Throttling configuration
+  throttling_burst_limit = var.throttling_burst_limit
+  throttling_rate_limit  = var.throttling_rate_limit
+
+  # Access logging configuration
+  enable_access_logging     = var.enable_access_logging
+  access_log_retention_days = var.access_log_retention_days
 }

@@ -60,3 +60,19 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+# ============================================
+# CloudWatch Alarms Configuration
+# ============================================
+
+variable "create_throttle_alarm" {
+  description = "Create CloudWatch alarm for throttled requests"
+  type        = bool
+  default     = false
+}
+
+variable "alarm_sns_topic_arns" {
+  description = "List of SNS topic ARNs to notify when alarms trigger"
+  type        = list(string)
+  default     = []
+}

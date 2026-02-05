@@ -7,4 +7,8 @@ module "frontend_bucket" {
   enable_encryption  = true
   static_files_path  = "${path.module}/../../../../../web/db-parser/dist"
   tags               = var.common_tags
+
+  # Access logging to dedicated logs bucket
+  enable_logging = true
+  logging_bucket = aws_s3_bucket.logs.id
 }

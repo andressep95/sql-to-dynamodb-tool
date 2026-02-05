@@ -25,9 +25,8 @@ resource "aws_s3_bucket_versioning" "this" {
   }
 }
 
-# Encriptación en reposo (SSE-S3 por defecto)
+# Encriptación en reposo (SSE-S3 - siempre habilitada)
 resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
-  count  = var.enable_encryption ? 1 : 0
   bucket = aws_s3_bucket.this.id
 
   rule {
@@ -35,6 +34,15 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
       sse_algorithm = "AES256"
     }
   }
+}
+
+# Access logging (conditional)
+resource "aws_s3_bucket_logging" "this" {
+  count = var.enable_logging ? 1 : 0
+
+  bucket        = aws_s3_bucket.this.id
+  target_bucket = var.logging_bucket
+  target_prefix = "s3/${var.bucket_name}/"
 }
 
 # Tipo de contenido correcto para HTML (opcional, recomendado)
@@ -52,24 +60,24 @@ resource "aws_s3_object" "html_objects" {
 # Archivos estáticos desde un directorio (frontend build)
 locals {
   content_type_map = {
-    ".html" = "text/html"
-    ".css"  = "text/css"
-    ".js"   = "application/javascript"
-    ".json" = "application/json"
-    ".png"  = "image/png"
-    ".jpg"  = "image/jpeg"
-    ".jpeg" = "image/jpeg"
-    ".gif"  = "image/gif"
-    ".svg"  = "image/svg+xml"
-    ".ico"  = "image/x-icon"
-    ".woff" = "font/woff"
+    ".html"  = "text/html"
+    ".css"   = "text/css"
+    ".js"    = "application/javascript"
+    ".json"  = "application/json"
+    ".png"   = "image/png"
+    ".jpg"   = "image/jpeg"
+    ".jpeg"  = "image/jpeg"
+    ".gif"   = "image/gif"
+    ".svg"   = "image/svg+xml"
+    ".ico"   = "image/x-icon"
+    ".woff"  = "font/woff"
     ".woff2" = "font/woff2"
-    ".ttf"  = "font/ttf"
-    ".eot"  = "application/vnd.ms-fontobject"
-    ".map"  = "application/json"
-    ".txt"  = "text/plain"
-    ".xml"  = "application/xml"
-    ".webp" = "image/webp"
+    ".ttf"   = "font/ttf"
+    ".eot"   = "application/vnd.ms-fontobject"
+    ".map"   = "application/json"
+    ".txt"   = "text/plain"
+    ".xml"   = "application/xml"
+    ".webp"  = "image/webp"
   }
 
   static_files = var.static_files_path != "" ? fileset(var.static_files_path, "**") : toset([])

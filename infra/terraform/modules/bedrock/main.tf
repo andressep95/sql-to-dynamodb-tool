@@ -31,6 +31,12 @@ resource "aws_cloudwatch_log_group" "bedrock" {
 }
 
 # IAM Role para Lambda acceder a Bedrock
+locals {
+  # Strip "us." prefix from model_id for foundation model ARN
+  # e.g., "us.anthropic.claude-3-5-sonnet-20241022-v2:0" -> "anthropic.claude-3-5-sonnet-20241022-v2:0"
+  foundation_model_id = replace(var.model_id, "/^us\\./", "")
+}
+
 resource "aws_iam_role_policy" "bedrock_access" {
   count = var.create_lambda_policy ? 1 : 0
 
@@ -47,10 +53,12 @@ resource "aws_iam_role_policy" "bedrock_access" {
           "bedrock:InvokeModelWithResponseStream"
         ]
         Resource = [
+          # Inference profiles for specific model (cross-region)
           "arn:aws:bedrock:us-east-1:${data.aws_caller_identity.current.account_id}:inference-profile/${var.model_id}",
           "arn:aws:bedrock:us-west-2:${data.aws_caller_identity.current.account_id}:inference-profile/${var.model_id}",
           "arn:aws:bedrock:us-east-2:${data.aws_caller_identity.current.account_id}:inference-profile/${var.model_id}",
-          "arn:aws:bedrock:*::foundation-model/anthropic.claude-3-*"
+          # Foundation model (without us. prefix, any region)
+          "arn:aws:bedrock:*::foundation-model/${local.foundation_model_id}"
         ]
       }
     ]

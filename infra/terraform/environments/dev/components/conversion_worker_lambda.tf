@@ -20,13 +20,13 @@ module "conversion_worker" {
 
   # Environment variables
   environment_variables = {
-    DYNAMODB_TABLE_NAME = var.dynamodb_table_name
-    DYNAMODB_ENDPOINT   = var.dynamodb_endpoint
-    SQS_QUEUE_URL       = var.sqs_queue_url
-    SQS_ENDPOINT        = var.sqs_endpoint
-    BEDROCK_MODEL_ID      = "us.anthropic.claude-sonnet-4-20250514-v1:0"
-    USE_MOCK_BEDROCK      = tostring(var.use_mock_bedrock)
-    BEDROCK_ENDPOINT      = "https://bedrock-runtime.${var.aws_region}.amazonaws.com"
+    DYNAMODB_TABLE_NAME           = var.dynamodb_table_name
+    DYNAMODB_ENDPOINT             = var.dynamodb_endpoint
+    SQS_QUEUE_URL                 = var.sqs_queue_url
+    SQS_ENDPOINT                  = var.sqs_endpoint
+    BEDROCK_MODEL_ID              = "us.anthropic.claude-sonnet-4-20250514-v1:0"
+    USE_MOCK_BEDROCK              = tostring(var.use_mock_bedrock)
+    BEDROCK_ENDPOINT              = "https://bedrock-runtime.${var.aws_region}.amazonaws.com"
     BEDROCK_AWS_ACCESS_KEY_ID     = var.aws_access_key_id
     BEDROCK_AWS_SECRET_ACCESS_KEY = var.aws_secret_access_key
     BEDROCK_AWS_REGION            = var.aws_region

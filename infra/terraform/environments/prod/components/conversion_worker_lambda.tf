@@ -20,8 +20,8 @@ module "conversion_worker" {
 
   # Environment variables - no mock bedrock, no explicit credentials (uses IAM role)
   environment_variables = {
-    DYNAMODB_TABLE_NAME   = var.dynamodb_table_name
-    SQS_QUEUE_URL         = var.sqs_queue_url
+    DYNAMODB_TABLE_NAME      = var.dynamodb_table_name
+    SQS_QUEUE_URL            = var.sqs_queue_url
     BEDROCK_MODEL_ID         = "us.anthropic.claude-3-5-sonnet-20241022-v2:0"
     BEDROCK_AWS_REGION       = "us-east-1"
     ACCESS_PATTERN_QUEUE_URL = var.access_pattern_queue_url

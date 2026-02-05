@@ -128,11 +128,11 @@ module "conversion_queue" {
 
   queue_name = "${var.environment}-conversion-queue"
 
-  visibility_timeout_seconds = 180
+  visibility_timeout_seconds        = 180
   access_pattern_visibility_timeout = 120
-  message_retention_seconds  = 345600 # 4 days
-  receive_wait_time_seconds  = 20     # Long polling
-  max_receive_count          = 3
+  message_retention_seconds         = 345600 # 4 days
+  receive_wait_time_seconds         = 20     # Long polling
+  max_receive_count                 = 3
 
   tags = local.common_tags
 }
@@ -142,19 +142,19 @@ module "lambda_components" {
   environment = var.environment
   common_tags = local.common_tags
 
-  role_arn            = aws_iam_role.lambda.arn
-  dynamodb_table_name = local.schemas_table_name
-  dynamodb_endpoint   = var.use_localstack ? var.localstack_lambda_endpoint : ""
-  sqs_queue_url       = module.conversion_queue.conversion_queue_url
-  sqs_queue_arn       = module.conversion_queue.conversion_queue_arn
-  sqs_endpoint        = var.use_localstack ? var.localstack_lambda_endpoint : ""
-  sqs_dlq_arn         = module.conversion_queue.conversion_dlq_arn
+  role_arn                 = aws_iam_role.lambda.arn
+  dynamodb_table_name      = local.schemas_table_name
+  dynamodb_endpoint        = var.use_localstack ? var.localstack_lambda_endpoint : ""
+  sqs_queue_url            = module.conversion_queue.conversion_queue_url
+  sqs_queue_arn            = module.conversion_queue.conversion_queue_arn
+  sqs_endpoint             = var.use_localstack ? var.localstack_lambda_endpoint : ""
+  sqs_dlq_arn              = module.conversion_queue.conversion_dlq_arn
   access_pattern_queue_url = module.conversion_queue.access_pattern_queue_url
   access_pattern_queue_arn = module.conversion_queue.access_pattern_queue_arn
-  use_mock_bedrock      = var.use_mock_bedrock
-  aws_access_key_id     = var.aws_access_key_id
-  aws_secret_access_key = var.aws_secret_access_key
-  aws_region            = var.aws_region
+  use_mock_bedrock         = var.use_mock_bedrock
+  aws_access_key_id        = var.aws_access_key_id
+  aws_secret_access_key    = var.aws_secret_access_key
+  aws_region               = var.aws_region
 }
 
 # ============================================

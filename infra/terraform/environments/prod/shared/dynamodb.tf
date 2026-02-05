@@ -30,6 +30,10 @@ module "schemas_table" {
   # Production: enable point-in-time recovery
   point_in_time_recovery = true
 
+  # CloudWatch throttle alarm
+  create_throttle_alarm = true
+  alarm_sns_topic_arns  = [aws_sns_topic.alarms.arn]
+
   tags = var.common_tags
 }
 

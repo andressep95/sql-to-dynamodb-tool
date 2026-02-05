@@ -43,3 +43,15 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "enable_logging" {
+  description = "Enable access logging for this bucket"
+  type        = bool
+  default     = false
+}
+
+variable "logging_bucket" {
+  description = "Target bucket ID for access logs (required if enable_logging is true)"
+  type        = string
+  default     = ""
+}

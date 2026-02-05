@@ -11,8 +11,8 @@ module "bedrock" {
 
   enable_logging        = false # LocalStack does not support Bedrock logging
   skip_model_validation = true  # LocalStack does not support Bedrock API
-  create_lambda_policy = true
-  lambda_role_name     = var.lambda_role_name
+  create_lambda_policy  = true
+  lambda_role_name      = var.lambda_role_name
 
   tags = var.common_tags
 }

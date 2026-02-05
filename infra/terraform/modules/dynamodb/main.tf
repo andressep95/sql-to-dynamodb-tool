@@ -44,3 +44,32 @@ resource "aws_dynamodb_table" "this" {
 
   tags = var.tags
 }
+
+# ============================================
+# CloudWatch Alarms (conditional)
+# ============================================
+
+# Alarm: Throttled Requests
+resource "aws_cloudwatch_metric_alarm" "throttled_requests" {
+  count = var.create_throttle_alarm ? 1 : 0
+
+  alarm_name          = "${var.table_name}-throttled-requests"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "ThrottledRequests"
+  namespace           = "AWS/DynamoDB"
+  period              = 300
+  statistic           = "Sum"
+  threshold           = 0
+  alarm_description   = "DynamoDB table ${var.table_name} is experiencing throttled requests"
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    TableName = aws_dynamodb_table.this.name
+  }
+
+  alarm_actions = var.alarm_sns_topic_arns
+  ok_actions    = var.alarm_sns_topic_arns
+
+  tags = var.tags
+}

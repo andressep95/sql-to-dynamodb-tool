@@ -4,6 +4,7 @@ locals {
   api_gateway_domain    = replace(replace(var.api_gateway_endpoint, "https://", ""), "/", "")
   use_custom_domain     = var.custom_domain != ""
   use_secret_header     = var.cloudflare_secret_header_value != ""
+  enable_logging        = var.logging_bucket != ""
 }
 
 # ============================================
@@ -99,25 +100,37 @@ resource "aws_cloudfront_distribution" "this" {
     }
   }
 
-  # Default cache behavior: S3 origin
+  # Default cache behavior: S3 origin (using cache policy instead of deprecated forwarded_values)
   default_cache_behavior {
     allowed_methods        = ["GET", "HEAD", "OPTIONS"]
     cached_methods         = ["GET", "HEAD"]
     target_origin_id       = local.s3_origin_id
     viewer_protocol_policy = "redirect-to-https"
 
-    forwarded_values {
-      query_string = false
+    cache_policy_id = data.aws_cloudfront_cache_policy.caching_optimized.id
 
-      cookies {
-        forward = "none"
+    compress = true
+
+    dynamic "function_association" {
+      for_each = local.use_secret_header ? [1] : []
+      content {
+        event_type   = "viewer-request"
+        function_arn = aws_cloudfront_function.verify_cf_secret[0].arn
       }
     }
+  }
 
-    min_ttl     = 0
-    default_ttl = 3600
-    max_ttl     = 86400
-    compress    = true
+  # Ordered cache behavior: Static assets with long TTL (1 year)
+  ordered_cache_behavior {
+    path_pattern           = "/assets/*"
+    allowed_methods        = ["GET", "HEAD", "OPTIONS"]
+    cached_methods         = ["GET", "HEAD"]
+    target_origin_id       = local.s3_origin_id
+    viewer_protocol_policy = "redirect-to-https"
+
+    cache_policy_id = data.aws_cloudfront_cache_policy.caching_optimized.id
+
+    compress = true
 
     dynamic "function_association" {
       for_each = local.use_secret_header ? [1] : []
@@ -147,6 +160,16 @@ resource "aws_cloudfront_distribution" "this" {
         event_type   = "viewer-request"
         function_arn = aws_cloudfront_function.verify_cf_secret[0].arn
       }
+    }
+  }
+
+  # Access logging (conditional)
+  dynamic "logging_config" {
+    for_each = local.enable_logging ? [1] : []
+    content {
+      include_cookies = false
+      bucket          = var.logging_bucket
+      prefix          = "cloudfront/${var.environment}/"
     }
   }
 
@@ -196,6 +219,10 @@ resource "aws_cloudfront_distribution" "this" {
 
 data "aws_cloudfront_cache_policy" "caching_disabled" {
   name = "Managed-CachingDisabled"
+}
+
+data "aws_cloudfront_cache_policy" "caching_optimized" {
+  name = "Managed-CachingOptimized"
 }
 
 data "aws_cloudfront_origin_request_policy" "all_viewer_except_host_header" {

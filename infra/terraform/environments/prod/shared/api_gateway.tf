@@ -22,5 +22,13 @@ module "api_gateway" {
     "GET /api/v1/schemas/{id}" = { lambda_invoke_arn = var.query_handler_invoke_arn, lambda_name = var.query_handler_function_name }
   }
 
+  # Throttling configuration (production)
+  throttling_burst_limit = 100
+  throttling_rate_limit  = 50
+
+  # Access logging configuration (production)
+  enable_access_logging     = true
+  access_log_retention_days = 14
+
   tags = var.common_tags
 }

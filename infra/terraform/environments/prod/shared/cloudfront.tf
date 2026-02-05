@@ -15,4 +15,7 @@ module "cloudfront" {
 
   custom_domain                  = var.custom_domain
   cloudflare_secret_header_value = var.cloudflare_secret_header_value
+
+  # Access logging to dedicated logs bucket
+  logging_bucket = aws_s3_bucket.logs.bucket_domain_name
 }

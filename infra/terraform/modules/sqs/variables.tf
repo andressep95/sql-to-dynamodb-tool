@@ -48,3 +48,25 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+# ============================================
+# CloudWatch Alarms Configuration
+# ============================================
+
+variable "create_alarms" {
+  description = "Create CloudWatch alarms for SQS queues"
+  type        = bool
+  default     = false
+}
+
+variable "alarm_sns_topic_arns" {
+  description = "List of SNS topic ARNs to notify when alarms trigger"
+  type        = list(string)
+  default     = []
+}
+
+variable "max_message_age_seconds" {
+  description = "Maximum age of oldest message in queue before alarming (seconds)"
+  type        = number
+  default     = 3600 # 1 hour
+}

@@ -43,3 +43,25 @@ output "acm_certificate_validation_records" {
   description = "DNS records required to validate the ACM certificate"
   value       = module.cloudfront.acm_certificate_validation_records
 }
+
+# SNS outputs
+output "sns_topic_arn" {
+  description = "ARN of the SNS topic for operational alarms"
+  value       = aws_sns_topic.alarms.arn
+}
+
+# Logs bucket outputs
+output "logs_bucket_name" {
+  description = "Name of the logs S3 bucket"
+  value       = aws_s3_bucket.logs.bucket
+}
+
+output "logs_bucket_arn" {
+  description = "ARN of the logs S3 bucket"
+  value       = aws_s3_bucket.logs.arn
+}
+
+output "logs_bucket_domain_name" {
+  description = "Domain name of the logs S3 bucket"
+  value       = aws_s3_bucket.logs.bucket_domain_name
+}

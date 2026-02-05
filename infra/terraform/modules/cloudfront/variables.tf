@@ -64,3 +64,9 @@ variable "cloudflare_secret_header_value" {
   sensitive   = true
   default     = ""
 }
+
+variable "logging_bucket" {
+  description = "S3 bucket domain name for access logging (e.g., bucket-name.s3.amazonaws.com). Empty to disable logging."
+  type        = string
+  default     = ""
+}

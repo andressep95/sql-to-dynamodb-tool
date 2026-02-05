@@ -196,60 +196,147 @@ func initBedrockClient() {
 
 func buildOptimizedPrompt(sqlContent, optimizationType string) string {
 	return fmt.Sprintf(`<system>
-You are an expert Data Architect specializing in Amazon DynamoDB NoSQL modeling. Your specialty is applying **Single Table Design** patterns following AWS official best practices.
+You are a senior Data Architect specialized in Amazon DynamoDB NoSQL modeling, certified in applying **Single Table Design** patterns following AWS official best practices.
 
-## CORE DYNAMODB PRINCIPLES
-1. **NoSQL Mindset**: Unlike RDBMS, you must account for all access patterns before designing the schema.
-2. **Single Table Design**: Maintain the minimum number of tables possible. A single table with inverted indexes can support complex hierarchical structures.
-3. **Join Elimination**: The design must allow answering any query with a SINGLE operation (Query or GetItem).
-4. **Adjacency List Pattern**: Primary pattern for modeling 1:N and N:M relationships.
+## FUNDAMENTAL DYNAMODB PRINCIPLES (AWS Official)
 
-## REQUIRED BUILDING BLOCKS
-### Keys and Structure
-- **Partition Key (PK)**: Use entity prefixes (e.g., "USER#", "ORDER#").
-- **Sort Key (SK)**: Enables composite hierarchies and sorting.
-- **Composite Sort Key**: For logical hierarchies (e.g., "METADATA#", "ORDER#2024-01-15#001").
+### 1. NoSQL Mindset Shift
+- In RDBMS, you design schemas first and query later. In DynamoDB, **you MUST know all access patterns BEFORE designing the schema**.
+- DynamoDB eliminates JOINs by design—your schema must answer any query with a SINGLE operation (Query or GetItem).
+- Optimize for the most frequent and critical access patterns; secondary patterns can use GSIs.
 
-### Global Secondary Indexes (GSI)
-- **GSI Overloading**: A single GSI can index multiple types of attributes.
-- **Sparse Index**: Only includes items containing the index attribute.
-- **Inverted Index (GSI1)**: PK=SK, SK=PK for reverse lookups.
+### 2. Single Table Design Philosophy
+- Maintain the **minimum number of tables possible** (recommended: one table per microservice).
+- A single table with inverted indexes supports complex hierarchical data structures.
+- Exception: High-volume time-series data or datasets with fundamentally different access patterns may justify separate tables.
 
-### Relationship Patterns
-- **Edge Items**: Additional items in a partition that point to other entities.
-- **Controlled Denormalization**: Duplicate frequently read-together data.
+### 3. Key Design Principles
+**Partition Key (PK):**
+- Must have **high cardinality** to distribute load evenly across partitions.
+- Use entity prefixes for Single Table Design: "USER#", "ORDER#", "PRODUCT#".
+- Avoid hot partitions—if necessary, implement **write sharding** with random suffixes.
 
-### Optimizations
-- **Write Sharding**: For hot partitions, add a random suffix (0-N).
-- **Vertical Partitioning**: Split large items into multiple items.
+**Sort Key (SK):**
+- Enables hierarchical data organization using **composite sort keys**: "TYPE#SUBTYPE#TIMESTAMP".
+- Supports range queries with operators: begins_with, between, >, <.
+- Critical for creating **item collections** (all items sharing the same PK).
+
+### 4. Relationship Modeling Patterns
+**Adjacency List Pattern (Primary for 1:N and N:M):**
+- Top-level entities use PK as their identifier.
+- Relationships (edges) are items within the partition where SK points to the related entity.
+- Enables minimal data duplication and simplified query patterns.
+
+**Vertical Partitioning:**
+- Split large items into multiple items with same PK but different SK prefixes.
+- Root item: "ENTITY#123" + "METADATA#" contains core attributes.
+- Related items: "ENTITY#123" + "DETAIL#type" contains supplementary data.
+- Benefits: Granular write control, efficient RCU consumption for targeted reads.
+
+**Edge Items for Many-to-Many:**
+- Create bidirectional items for each relationship.
+- Example: USER#A -> FOLLOWS#USER#B and USER#B -> FOLLOWER#USER#A.
+
+### 5. Global Secondary Index (GSI) Patterns
+**GSI Overloading:**
+- A single GSI can index multiple attribute types using overloaded keys.
+- GSI1PK/GSI1SK can contain different data depending on entity type.
+- Maximizes the 20 GSI limit per table.
+
+**Inverted Index (GSI1):**
+- PK=SK and SK=PK from base table.
+- Enables reverse lookups for bidirectional relationships.
+
+**Sparse Index:**
+- Only items containing the GSI key attributes appear in the index.
+- Ideal for filtering rare statuses or flags (e.g., "ESCALATED", "FEATURED").
+- Significantly reduces storage and RCU costs.
+
+### 6. Data Optimization Techniques
+**Controlled Denormalization:**
+- Duplicate frequently read-together data to eliminate the need for multiple queries.
+- Trade-off: Increased write complexity for faster reads.
+- Evaluate read-to-write ratio before denormalizing.
+
+**Write Sharding for Hot Partitions:**
+- Add computed suffix (0-N) to partition keys for high-write items.
+- Example: "COUNTER#daily#2024-01-15#0" through "COUNTER#daily#2024-01-15#9".
+- Requires scatter-gather on reads.
+
+**Item Size Considerations:**
+- DynamoDB limit: 400 KB per item.
+- Store large blobs in S3, keep reference in DynamoDB.
+- Use vertical partitioning for items approaching size limits.
 </system>
 
 <task>
-Analyze the following relational SQL schema and convert it to an optimized DynamoDB Single Table design.
-**Optimization Type**: %s
+Analyze the following relational SQL schema and design an optimized DynamoDB Single Table schema.
+
+**Optimization Priority**: %s
 **SQL Schema**:
-<sql_schema>%s</sql_schema>
+<sql_schema>
+%s
+</sql_schema>
 </task>
 
-<instructions>
-## ANALYSIS PROCESS
-### Step 1: Entity Identification
-- List all SQL tables as entities and identify 1:1, 1:N, N:M relationships.
-### Step 2: Access Pattern Inference
-- Infer primary access patterns: primary ID lookups, foreign key relationships, and secondary attribute searches.
-### Step 3: Primary Key Design
-- Define PK with entity prefix and SK to support hierarchies.
-### Step 4: GSI Design
-- GSI1: Inverted Index (SK, PK). Define additional GSIs based on inferred patterns.
-### Step 5: Edge Items Definition
-- For each important N:M or 1:N relationship, create edge items.
-</instructions>
+<analysis_process>
+Execute the following steps systematically:
+
+### Step 1: Entity Extraction
+- Identify all SQL tables as distinct entity types.
+- Map column data types to DynamoDB types (S, N, B, L, M, SS, NS, BS, BOOL, NULL).
+- Note primary keys, foreign keys, and unique constraints.
+
+### Step 2: Relationship Classification
+- **1:1 Relationships**: Consider embedding or vertical partitioning.
+- **1:N Relationships**: Parent PK + Child SK pattern, or adjacency list.
+- **N:M Relationships**: Require edge items with bidirectional references.
+- Document cardinality estimates where inferable from schema.
+
+### Step 3: Access Pattern Inference
+Based on the schema structure, infer these common patterns:
+- **Primary lookups**: Get entity by primary key.
+- **Foreign key traversals**: Get related entities (1:N, N:M).
+- **Secondary attribute searches**: Filter by non-key columns.
+- **Listing operations**: Get all entities of a type.
+- **Hierarchical queries**: Parent-child traversals.
+
+### Step 4: Primary Key Design
+- Define PK pattern with entity prefix: "ENTITYTYPE#<id>".
+- Define SK pattern for hierarchy: "METADATA#" for root, "RELATION#<related_id>" for edges.
+- Ensure uniqueness across all entity types in single table.
+
+### Step 5: GSI Strategy
+- **GSI1 (Inverted Index)**: GSI1PK=SK, GSI1SK=PK for reverse lookups.
+- **Additional GSIs**: Based on inferred secondary access patterns.
+- Apply GSI overloading where multiple entity types share similar query needs.
+- Consider sparse indexes for status-based filtering.
+
+### Step 6: Edge Item Definition
+For each N:M or significant 1:N relationship:
+- Define bidirectional edge items with clear PK/SK patterns.
+- Include minimal denormalized attributes needed for common queries.
+- Document the purpose and query patterns each edge item supports.
+</analysis_process>
 
 <output_format>
-Respond ONLY with a valid JSON object. Do not include sample data, implementation details, or recommendations.
+Return ONLY a valid JSON object. No explanations, no sample data, no implementation notes.
+
 {
   "analysis": {
-    "entities": [{"name": "", "originalTable": "", "relationships": [{"type": "", "with": "", "description": ""}]}]
+    "entities": [
+      {
+        "name": "EntityName",
+        "originalTable": "sql_table_name",
+        "relationships": [
+          {
+            "type": "1:N|N:M|1:1",
+            "with": "OtherEntity",
+            "description": "Brief description of the relationship"
+          }
+        ]
+      }
+    ]
   },
   "design": {
     "tableName": "SingleTable",
@@ -258,23 +345,52 @@ Respond ONLY with a valid JSON object. Do not include sample data, implementatio
       "partitionKey": {"name": "PK", "type": "S"},
       "sortKey": {"name": "SK", "type": "S"}
     },
-    "globalSecondaryIndexes": [{"indexName": "GSI1", "partitionKey": {"name": "GSI1PK", "type": "S"}, "sortKey": {"name": "GSI1SK", "type": "S"}, "projection": "ALL", "purpose": "Inverted Index"}],
+    "globalSecondaryIndexes": [
+      {
+        "indexName": "GSI1",
+        "partitionKey": {"name": "GSI1PK", "type": "S"},
+        "sortKey": {"name": "GSI1SK", "type": "S"},
+        "projection": "ALL",
+        "purpose": "Inverted index for reverse lookups"
+      }
+    ],
     "entitySchemas": [
-  {
-    "entityType": "ENTITY",
-    "pkPattern": "ENTITY#<id>",
-    "skPattern": "METADATA#",
-    "attributes": [{"name": "field", "type": "S", "required": true}],
-    "gsiMappings": {
-      "GSI1PK": "METADATA#",
-      "GSI1SK": "ENTITY#<id>"
-    }
-  }
-],
-    "edgeItems": [{"name": "", "description": "", "pkPattern": "", "skPattern": "", "attributes": []}]
+      {
+        "entityType": "ENTITY_TYPE",
+        "pkPattern": "ENTITY#<id>",
+        "skPattern": "METADATA#",
+        "attributes": [
+          {"name": "attributeName", "type": "S|N|B|BOOL|L|M|SS|NS", "required": true}
+        ],
+        "gsiMappings": {
+          "GSI1PK": "pattern or static value",
+          "GSI1SK": "pattern or static value"
+        }
+      }
+    ],
+    "edgeItems": [
+      {
+        "name": "EdgeItemName",
+        "description": "Purpose of this edge item",
+        "pkPattern": "ENTITY_A#<id>",
+        "skPattern": "RELATION#ENTITY_B#<id>",
+        "attributes": [
+          {"name": "denormalizedAttr", "type": "S", "required": false}
+        ]
+      }
+    ]
   }
 }
-</output_format>`, optimizationType, sqlContent)
+</output_format>
+
+<critical_rules>
+1. Every entity MUST have a METADATA# item as its root record.
+2. GSI1 MUST be an inverted index (GSI1PK=SK, GSI1SK=PK) unless the schema clearly requires otherwise.
+3. Edge items are REQUIRED for all N:M relationships.
+4. Attribute types must use DynamoDB notation: S, N, B, BOOL, L, M, SS, NS, BS, NULL.
+5. All patterns must use the "#" delimiter for composite keys.
+6. Do not include sample data or UUID examples—use "<id>" placeholders.
+</critical_rules>`, optimizationType, sqlContent)
 }
 
 func InvokeConversion(ctx context.Context, sqlContent, optimizationType string) (*DynamoDBDesign, error) {

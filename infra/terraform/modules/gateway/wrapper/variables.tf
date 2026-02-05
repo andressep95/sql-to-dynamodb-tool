@@ -58,3 +58,35 @@ variable "tags" {
   type    = map(string)
   default = {}
 }
+
+# ============================================
+# Throttling Configuration (HTTP v2 only)
+# ============================================
+
+variable "throttling_burst_limit" {
+  description = "Maximum number of concurrent requests API Gateway can handle"
+  type        = number
+  default     = 100
+}
+
+variable "throttling_rate_limit" {
+  description = "Maximum number of requests per second"
+  type        = number
+  default     = 50
+}
+
+# ============================================
+# Access Logging Configuration (HTTP v2 only)
+# ============================================
+
+variable "enable_access_logging" {
+  description = "Enable access logging for API Gateway"
+  type        = bool
+  default     = false
+}
+
+variable "access_log_retention_days" {
+  description = "Number of days to retain access logs"
+  type        = number
+  default     = 14
+}
