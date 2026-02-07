@@ -127,3 +127,16 @@ variable "cloudflare_secret_header_value" {
   sensitive   = true
   default     = ""
 }
+
+# Cognito JWT
+variable "cognito_issuer_url" {
+  description = "Cognito User Pool issuer URL for JWT validation"
+  type        = string
+  default     = null
+}
+
+variable "cognito_client_id" {
+  description = "Cognito User Pool Client ID for JWT audience"
+  type        = string
+  default     = null
+}

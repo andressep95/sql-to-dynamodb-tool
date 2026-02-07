@@ -90,3 +90,19 @@ variable "access_log_retention_days" {
   type        = number
   default     = 14
 }
+
+# ============================================
+# JWT Authorizer Configuration (HTTP v2 only)
+# ============================================
+
+variable "jwt_issuer" {
+  description = "JWT issuer URL (Cognito User Pool endpoint). Set to null to disable JWT auth."
+  type        = string
+  default     = null
+}
+
+variable "jwt_audience" {
+  description = "JWT audience (Cognito App Client IDs)"
+  type        = list(string)
+  default     = []
+}

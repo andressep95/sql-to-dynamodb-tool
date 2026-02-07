@@ -4,16 +4,16 @@ Sistema serverless que automatiza la migración de esquemas SQL relacionales a d
 
 ## Resumen del Proyecto
 
-| Aspecto | Tecnología |
-|---------|------------|
-| **Frontend** | Vue 3 + TypeScript + PrimeVue |
-| **Backend** | 5 Lambda Functions (Go 1.x, ARM64) |
-| **IA** | Claude 3.5 Sonnet v2 + Claude 3.5 Haiku |
-| **Base de datos** | DynamoDB (TTL 24h) |
-| **Mensajería** | SQS (2 colas + 2 DLQ) |
-| **API** | HTTP API Gateway v2 |
-| **CDN** | CloudFront + Cloudflare |
-| **IaC** | Terraform (10 módulos) |
+| Aspecto           | Tecnología                              |
+| ----------------- | --------------------------------------- |
+| **Frontend**      | Vue 3 + TypeScript + PrimeVue           |
+| **Backend**       | 5 Lambda Functions (Go 1.x, ARM64)      |
+| **IA**            | Claude 3.5 Sonnet v2 + Claude 3.5 Haiku |
+| **Base de datos** | DynamoDB (TTL 24h)                      |
+| **Mensajería**    | SQS (2 colas + 2 DLQ)                   |
+| **API**           | HTTP API Gateway v2                     |
+| **CDN**           | CloudFront + Cloudflare                 |
+| **IaC**           | Terraform (7 módulos)                   |
 
 ## Estructura del Proyecto
 
@@ -109,8 +109,8 @@ TF_VAR_cloudflare_secret_header_value=...  # Header de seguridad
 
 ## Endpoints API
 
-| Método | Ruta | Lambda | Descripción |
-|--------|------|--------|-------------|
-| POST | `/api/v1/schemas` | process-handler | Iniciar conversión |
-| GET | `/api/v1/schemas` | query-handler | Listar conversiones |
-| GET | `/api/v1/schemas/{id}` | query-handler | Obtener por ID |
+| Método | Ruta                   | Lambda          | Descripción         |
+| ------ | ---------------------- | --------------- | ------------------- |
+| POST   | `/api/v1/schemas`      | process-handler | Iniciar conversión  |
+| GET    | `/api/v1/schemas`      | query-handler   | Listar conversiones |
+| GET    | `/api/v1/schemas/{id}` | query-handler   | Obtener por ID      |

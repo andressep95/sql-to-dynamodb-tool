@@ -41,6 +41,21 @@ resource "aws_apigatewayv2_integration" "lambda" {
   payload_format_version = "2.0"
 }
 
+# JWT Authorizer (conditional)
+resource "aws_apigatewayv2_authorizer" "jwt" {
+  count = var.jwt_issuer != null ? 1 : 0
+
+  api_id           = aws_apigatewayv2_api.this.id
+  authorizer_type  = "JWT"
+  identity_sources = ["$request.header.Authorization"]
+  name             = "${var.name}-jwt-authorizer"
+
+  jwt_configuration {
+    audience = var.jwt_audience
+    issuer   = var.jwt_issuer
+  }
+}
+
 # Routes pointing to the correct integration
 resource "aws_apigatewayv2_route" "this" {
   for_each = var.routes
@@ -48,6 +63,9 @@ resource "aws_apigatewayv2_route" "this" {
   api_id    = aws_apigatewayv2_api.this.id
   route_key = each.key
   target    = "integrations/${aws_apigatewayv2_integration.lambda[local.route_lambdas[each.key].name].id}"
+
+  authorization_type = var.jwt_issuer != null ? "JWT" : "NONE"
+  authorizer_id      = var.jwt_issuer != null ? aws_apigatewayv2_authorizer.jwt[0].id : null
 }
 
 # CloudWatch Log Group for Access Logs (conditional)

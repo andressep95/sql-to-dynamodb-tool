@@ -25,7 +25,7 @@ Documentación detallada de la infraestructura como código del proyecto SQL to 
 
 La infraestructura está diseñada con los siguientes principios:
 
-- **Modularidad**: 8 módulos reutilizables e independientes
+- **Modularidad**: 7 módulos reutilizables e independientes
 - **Multi-ambiente**: Desarrollo (LocalStack) y Producción (AWS)
 - **Seguridad**: Least privilege IAM, encriptación en tránsito y reposo
 - **Observabilidad**: CloudWatch Logs, Metrics y Alarms
@@ -143,6 +143,7 @@ provider "aws" {
 ```
 
 **Características:**
+
 - LocalStack Pro (emulación AWS completa)
 - API Gateway REST v1 (más compatible)
 - Sin costos de AWS
@@ -167,6 +168,7 @@ provider "aws" {
 ```
 
 **Características:**
+
 - AWS real con state remoto en S3
 - API Gateway HTTP v2 (más eficiente)
 - CloudFront + ACM para HTTPS
@@ -181,6 +183,7 @@ provider "aws" {
 ### Propósito
 
 Provisiona funciones Lambda con configuración estandarizada:
+
 - Runtime Go 1.x en arquitectura ARM64
 - CloudWatch Logs con retención configurable
 - Alarmas de errores y duración
@@ -400,11 +403,11 @@ resource "aws_apigatewayv2_route" "routes" {
 
 ### Rutas Configuradas
 
-| Route Key | Lambda | Descripción |
-|-----------|--------|-------------|
-| `POST /api/v1/schemas` | process-handler | Crear conversión |
-| `GET /api/v1/schemas` | query-handler | Listar conversiones |
-| `GET /api/v1/schemas/{id}` | query-handler | Obtener por ID |
+| Route Key                  | Lambda          | Descripción         |
+| -------------------------- | --------------- | ------------------- |
+| `POST /api/v1/schemas`     | process-handler | Crear conversión    |
+| `GET /api/v1/schemas`      | query-handler   | Listar conversiones |
+| `GET /api/v1/schemas/{id}` | query-handler   | Obtener por ID      |
 
 ---
 
@@ -620,10 +623,10 @@ resource "aws_cloudwatch_metric_alarm" "message_age" {
 
 ### Buckets
 
-| Bucket | Propósito |
-|--------|-----------|
-| `sql-to-nosql-frontend` | Hosting SPA Vue |
-| `sql-to-nosql-logs` | Access logs de S3 |
+| Bucket                         | Propósito              |
+| ------------------------------ | ---------------------- |
+| `sql-to-nosql-frontend`        | Hosting SPA Vue        |
+| `sql-to-nosql-logs`            | Access logs de S3      |
 | `sql-to-nosql-terraform-state` | State remoto Terraform |
 
 ### Configuración Frontend Bucket
@@ -874,24 +877,24 @@ resource "aws_cloudfront_distribution" "main" {
 ```javascript
 // Valida que las requests vengan de Cloudflare
 function handler(event) {
-    var request = event.request;
-    var headers = request.headers;
+  var request = event.request;
+  var headers = request.headers;
 
-    // Verificar header secreto de origen
-    var originSecret = headers['x-origin-verify'];
+  // Verificar header secreto de origen
+  var originSecret = headers["x-origin-verify"];
 
-    if (!originSecret || originSecret.value !== 'EXPECTED_SECRET') {
-        return {
-            statusCode: 403,
-            statusDescription: 'Forbidden',
-            body: {
-                encoding: 'text',
-                data: 'Access denied'
-            }
-        };
-    }
+  if (!originSecret || originSecret.value !== "EXPECTED_SECRET") {
+    return {
+      statusCode: 403,
+      statusDescription: "Forbidden",
+      body: {
+        encoding: "text",
+        data: "Access denied",
+      },
+    };
+  }
 
-    return request;
+  return request;
 }
 ```
 
@@ -903,10 +906,10 @@ function handler(event) {
 
 ### Modelos Utilizados
 
-| Modelo | ID | Uso |
-|--------|-----|-----|
-| Claude 3.5 Sonnet v2 | `us.anthropic.claude-3-5-sonnet-20241022-v2:0` | Conversión SQL→DynamoDB |
-| Claude 3.5 Haiku | `us.anthropic.claude-3-5-haiku-20241022-v1:0` | Generación access patterns |
+| Modelo               | ID                                             | Uso                        |
+| -------------------- | ---------------------------------------------- | -------------------------- |
+| Claude 3.5 Sonnet v2 | `us.anthropic.claude-3-5-sonnet-20241022-v2:0` | Conversión SQL→DynamoDB    |
+| Claude 3.5 Haiku     | `us.anthropic.claude-3-5-haiku-20241022-v1:0`  | Generación access patterns |
 
 ### Políticas IAM
 
@@ -1000,13 +1003,13 @@ resource "aws_iam_role_policy" "process_handler_dynamodb" {
 
 ### Matriz de Permisos por Lambda
 
-| Lambda | DynamoDB | SQS | Bedrock |
-|--------|----------|-----|---------|
-| process-handler | PutItem | SendMessage | - |
-| conversion-worker | UpdateItem | ReceiveMessage, DeleteMessage, SendMessage | InvokeModel |
-| access-pattern-worker | UpdateItem | ReceiveMessage, DeleteMessage | InvokeModel |
-| query-handler | GetItem, Query, Scan | - | - |
-| dlq-handler | UpdateItem | ReceiveMessage, DeleteMessage | - |
+| Lambda                | DynamoDB             | SQS                                        | Bedrock     |
+| --------------------- | -------------------- | ------------------------------------------ | ----------- |
+| process-handler       | PutItem              | SendMessage                                | -           |
+| conversion-worker     | UpdateItem           | ReceiveMessage, DeleteMessage, SendMessage | InvokeModel |
+| access-pattern-worker | UpdateItem           | ReceiveMessage, DeleteMessage              | InvokeModel |
+| query-handler         | GetItem, Query, Scan | -                                          | -           |
+| dlq-handler           | UpdateItem           | ReceiveMessage, DeleteMessage              | -           |
 
 ### Beneficios de este Enfoque
 
@@ -1094,13 +1097,13 @@ terraform {
 
 ### Alarmas Configuradas
 
-| Servicio | Alarma | Umbral | Acción |
-|----------|--------|--------|--------|
-| Lambda | High Error Rate | > N errores/min | SNS |
-| Lambda | High Duration | > N ms promedio | SNS |
-| DynamoDB | Throttled Requests | > 0 | SNS |
-| SQS | DLQ Has Messages | > 0 | SNS |
-| SQS | Message Age | > 1 hora | SNS |
+| Servicio | Alarma             | Umbral          | Acción |
+| -------- | ------------------ | --------------- | ------ |
+| Lambda   | High Error Rate    | > N errores/min | SNS    |
+| Lambda   | High Duration      | > N ms promedio | SNS    |
+| DynamoDB | Throttled Requests | > 0             | SNS    |
+| SQS      | DLQ Has Messages   | > 0             | SNS    |
+| SQS      | Message Age        | > 1 hora        | SNS    |
 
 ### SNS Topic
 
@@ -1217,8 +1220,8 @@ terraform validate
 
 Las decisiones de diseño importantes están documentadas como ADRs (Architecture Decision Records):
 
-| ADR | Título | Estado |
-|-----|--------|--------|
+| ADR                                                               | Título                                       | Estado   |
+| ----------------------------------------------------------------- | -------------------------------------------- | -------- |
 | [ADR-001](../architecture/decisions/001-iam-policy-colocation.md) | Colocación de Políticas IAM junto a Recursos | Aceptado |
 
 ---

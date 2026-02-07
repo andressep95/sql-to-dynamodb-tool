@@ -1,13 +1,18 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useRoute } from 'vue-router'
 import Sidebar from '@/components/Sidebar.vue'
 import Toast from 'primevue/toast'
 import Button from 'primevue/button'
 
+const route = useRoute()
 const sidebarExpanded = ref(false)
 const mobileMenuOpen = ref(false)
 
+const showSidebar = computed(() => route.name !== 'login')
+
 const mainMargin = computed(() => {
+  if (!showSidebar.value) return '0'
   return sidebarExpanded.value ? '220px' : '70px'
 })
 
@@ -21,6 +26,7 @@ function toggleMobileMenu() {
 
   <!-- Mobile hamburger -->
   <Button
+    v-if="showSidebar"
     icon="pi pi-bars"
     text
     rounded
@@ -29,9 +35,10 @@ function toggleMobileMenu() {
   />
 
   <!-- Mobile overlay -->
-  <div v-if="mobileMenuOpen" class="mobile-overlay" @click="mobileMenuOpen = false"></div>
+  <div v-if="mobileMenuOpen && showSidebar" class="mobile-overlay" @click="mobileMenuOpen = false"></div>
 
   <Sidebar
+    v-if="showSidebar"
     :is-mobile-open="mobileMenuOpen"
     @update:expanded="sidebarExpanded = $event"
   />

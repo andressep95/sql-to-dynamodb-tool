@@ -98,3 +98,33 @@ output "acm_certificate_validation_records" {
   description = "DNS records to add in Cloudflare for ACM certificate validation"
   value       = module.shared.acm_certificate_validation_records
 }
+
+# Cognito outputs
+output "cognito_user_pool_id" {
+  description = "ID of the Cognito User Pool"
+  value       = module.cognito.user_pool_id
+}
+
+output "cognito_client_id" {
+  description = "ID of the Cognito User Pool Client"
+  value       = module.cognito.client_id
+}
+
+# Frontend configuration (copy to web/db-parser/.env.local)
+output "frontend_env_config" {
+  description = "Environment variables for frontend configuration"
+  value = <<-EOT
+    
+    ╔════════════════════════════════════════════════════════════════╗
+    ║  Frontend Configuration (.env.local)                           ║
+    ╚════════════════════════════════════════════════════════════════╝
+    
+    Copy these values to: web/db-parser/.env.local
+    
+    VITE_BASE_PATH_URL=https://${module.shared.cloudfront_distribution_domain}
+    VITE_ENDPOINT_URL=prod/api/v1/schemas
+    VITE_COGNITO_USER_POOL_ID=${module.cognito.user_pool_id}
+    VITE_COGNITO_CLIENT_ID=${module.cognito.client_id}
+    
+  EOT
+}

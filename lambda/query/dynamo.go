@@ -32,7 +32,8 @@ func initDynamoClient() {
 }
 
 // GetConversionByID retrieves a single conversion record by its ID.
-func GetConversionByID(ctx context.Context, conversionID string) (map[string]interface{}, error) {
+// Verifies the record belongs to the given tenantID for security.
+func GetConversionByID(ctx context.Context, conversionID string, tenantID string) (map[string]interface{}, error) {
 	tableName := os.Getenv("DYNAMODB_TABLE_NAME")
 	if tableName == "" {
 		return nil, fmt.Errorf("DYNAMODB_TABLE_NAME not set")
@@ -56,11 +57,19 @@ func GetConversionByID(ctx context.Context, conversionID string) (map[string]int
 		return nil, nil
 	}
 
-	return unmarshalItem(result.Item), nil
+	item := unmarshalItem(result.Item)
+
+	// Verify tenant ownership
+	if itemTenant, ok := item["tenantId"].(string); ok && itemTenant != tenantID {
+		log.Printf("WARN: Tenant mismatch for %s: expected %s, got %s", conversionID, tenantID, itemTenant)
+		return nil, nil
+	}
+
+	return item, nil
 }
 
-// ListConversions retrieves all conversion records from DynamoDB via Scan.
-func ListConversions(ctx context.Context) ([]map[string]interface{}, error) {
+// ListConversions retrieves conversion records for a tenant using GSI query.
+func ListConversions(ctx context.Context, tenantID string) ([]map[string]interface{}, error) {
 	tableName := os.Getenv("DYNAMODB_TABLE_NAME")
 	if tableName == "" {
 		return nil, fmt.Errorf("DYNAMODB_TABLE_NAME not set")
@@ -70,15 +79,21 @@ func ListConversions(ctx context.Context) ([]map[string]interface{}, error) {
 		return nil, fmt.Errorf("DynamoDB client not initialized")
 	}
 
-	result, err := dynamoClient.Scan(ctx, &dynamodb.ScanInput{
-		TableName:            aws.String(tableName),
+	result, err := dynamoClient.Query(ctx, &dynamodb.QueryInput{
+		TableName:              aws.String(tableName),
+		IndexName:              aws.String("tenantId-createdAt-index"),
+		KeyConditionExpression: aws.String("tenantId = :tid"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":tid": &types.AttributeValueMemberS{Value: tenantID},
+		},
 		ProjectionExpression: aws.String("conversionId, conversionDate, createdAt, #s, optimizationType, tablesExtracted"),
 		ExpressionAttributeNames: map[string]string{
 			"#s": "status",
 		},
+		ScanIndexForward: aws.Bool(false), // Most recent first
 	})
 	if err != nil {
-		return nil, fmt.Errorf("DynamoDB Scan failed: %w", err)
+		return nil, fmt.Errorf("DynamoDB Query failed: %w", err)
 	}
 
 	records := make([]map[string]interface{}, 0, len(result.Items))
@@ -86,7 +101,7 @@ func ListConversions(ctx context.Context) ([]map[string]interface{}, error) {
 		records = append(records, unmarshalItem(item))
 	}
 
-	log.Printf("Listed %d conversion records", len(records))
+	log.Printf("Listed %d conversion records for tenant %s", len(records), tenantID)
 	return records, nil
 }
 

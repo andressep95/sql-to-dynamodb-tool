@@ -111,7 +111,6 @@ export interface Conversion {
   conversionId: string
   conversionDate: string
   createdAt: string
-  expiresAt: string
   sqlContent: string
   noSqlSchema: DynamoDBDesign | NoSqlSchema // Support both formats
   optimizationType: string

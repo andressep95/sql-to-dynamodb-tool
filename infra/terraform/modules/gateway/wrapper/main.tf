@@ -43,4 +43,8 @@ module "http_v2" {
   # Access logging configuration
   enable_access_logging     = var.enable_access_logging
   access_log_retention_days = var.access_log_retention_days
+
+  # JWT authorizer configuration
+  jwt_issuer   = var.jwt_issuer
+  jwt_audience = var.jwt_audience
 }

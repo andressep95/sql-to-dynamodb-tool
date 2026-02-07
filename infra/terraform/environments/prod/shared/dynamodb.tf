@@ -9,10 +9,11 @@ module "schemas_table" {
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "conversionId"
 
-  # GSI attributes (conversionDate + createdAt for date-based queries)
+  # GSI attributes
   gsi_attributes = [
     { name = "conversionDate", type = "S" },
-    { name = "createdAt", type = "S" }
+    { name = "createdAt", type = "S" },
+    { name = "tenantId", type = "S" },
   ]
 
   global_secondary_indexes = [
@@ -21,11 +22,14 @@ module "schemas_table" {
       hash_key        = "conversionDate"
       range_key       = "createdAt"
       projection_type = "ALL"
-    }
+    },
+    {
+      name            = "tenantId-createdAt-index"
+      hash_key        = "tenantId"
+      range_key       = "createdAt"
+      projection_type = "ALL"
+    },
   ]
-
-  # TTL: 24 hours automatic cleanup
-  ttl_attribute = "expiresAt"
 
   # Production: enable point-in-time recovery
   point_in_time_recovery = true

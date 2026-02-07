@@ -24,22 +24,34 @@
     <!-- User Section -->
     <div class="sidebar-footer">
       <div class="user-info">
-        <Avatar label="DB" shape="circle" size="normal" />
+        <Avatar :label="userInitials" shape="circle" size="normal" />
         <div v-show="isExpanded || isMobileOpen" class="user-details">
-          <span class="user-name">SQL to NoSQL</span>
-          <span class="user-email">Parser Tool</span>
+          <span class="user-name">{{ auth.displayName || 'Usuario' }}</span>
+          <span class="user-email">{{ auth.userEmail }}</span>
         </div>
       </div>
+      <button
+        v-show="isExpanded || isMobileOpen"
+        class="logout-btn"
+        @click="handleLogout"
+        title="Cerrar sesión"
+      >
+        <i class="pi pi-sign-out"></i>
+        <span>Cerrar sesión</span>
+      </button>
     </div>
   </aside>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, toRefs } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, watch, toRefs, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import Avatar from 'primevue/avatar'
+import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
+const router = useRouter()
+const auth = useAuthStore()
 
 const props = defineProps<{
   isMobileOpen?: boolean
@@ -61,10 +73,20 @@ const menuItems = [
   { label: 'Historial', icon: 'pi pi-history', path: '/history' },
 ]
 
+const userInitials = computed(() => {
+  if (!auth.displayName) return 'U'
+  return auth.displayName.substring(0, 2).toUpperCase()
+})
+
 const isActive = (path: string) => route.path === path
 
 const expand = () => { isExpanded.value = true }
 const collapse = () => { isExpanded.value = false }
+
+const handleLogout = () => {
+  auth.logout()
+  router.push('/login')
+}
 </script>
 
 <style scoped>
@@ -232,6 +254,31 @@ const collapse = () => { isExpanded.value = false }
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  color: #6b7280;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.logout-btn:hover {
+  background-color: #fee2e2;
+  border-color: #fecaca;
+  color: #dc2626;
+}
+
+.logout-btn i {
+  font-size: 1rem;
 }
 
 .sidebar-nav::-webkit-scrollbar {

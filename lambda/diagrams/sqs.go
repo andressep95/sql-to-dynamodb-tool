@@ -37,6 +37,7 @@ type SQSMessage struct {
 	SQLContent       string `json:"sqlContent"`
 	OptimizationType string `json:"optimizationType"`
 	TablesExtracted  int    `json:"tablesExtracted"`
+	TenantID         string `json:"tenantId"`
 }
 
 // SendToQueue sends a conversion record to the SQS queue for async processing.
@@ -55,6 +56,7 @@ func SendToQueue(ctx context.Context, record *ConversionRecord) error {
 		SQLContent:       record.SQLContent,
 		OptimizationType: record.OptimizationType,
 		TablesExtracted:  record.TablesExtracted,
+		TenantID:         record.TenantID,
 	}
 
 	body, err := json.Marshal(msg)

@@ -166,10 +166,6 @@ function formatSql(sql: string): string {
             <span class="meta-value">{{ formatTime(selectedConversion.createdAt) }}</span>
           </div>
           <div class="meta-item">
-            <span class="meta-label">Expira</span>
-            <span class="meta-value">{{ formatDateTime(new Date(Number(selectedConversion.expiresAt) * 1000).toISOString()) }}</span>
-          </div>
-          <div class="meta-item">
             <Tag :value="selectedConversion.status" :severity="statusSeverity(selectedConversion.status)" />
           </div>
           <div class="meta-item">

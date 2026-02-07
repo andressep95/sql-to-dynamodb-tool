@@ -75,8 +75,16 @@ func handleValidateSQL(ctx context.Context, req events.APIGatewayV2HTTPRequest) 
 		})
 	}
 
-	// 5. Schema valido -> crear registro PENDING en DynamoDB
-	record, err := CreateConversionRecord(ctx, body.SQLContent, body.OptimizationType, len(result.Tables))
+	// 5. Extract tenantId from JWT claims
+	tenantID := "public"
+	if jwtClaims := req.RequestContext.Authorizer.JWT; jwtClaims != nil {
+		if tid, ok := jwtClaims.Claims["custom:tenant_id"]; ok && tid != "" {
+			tenantID = tid
+		}
+	}
+
+	// 6. Schema valido -> crear registro PENDING en DynamoDB
+	record, err := CreateConversionRecord(ctx, body.SQLContent, body.OptimizationType, len(result.Tables), tenantID)
 	if err != nil {
 		log.Printf("ERROR: Failed to create DynamoDB record: %v", err)
 		return jsonResponse(500, ErrorResponse{
@@ -85,17 +93,16 @@ func handleValidateSQL(ctx context.Context, req events.APIGatewayV2HTTPRequest) 
 		})
 	}
 
-	// 6. Send to SQS for async processing (non-blocking)
+	// 7. Send to SQS for async processing (non-blocking)
 	if err := SendToQueue(ctx, record); err != nil {
 		log.Printf("WARN: Failed to send to SQS (non-blocking): %v", err)
 	}
 
-	// 7. Retornar 202 Accepted
+	// 8. Retornar 202 Accepted
 	return jsonResponse(202, map[string]interface{}{
 		"conversionId": record.ConversionID,
 		"status":       record.Status,
 		"createdAt":    record.CreatedAt,
-		"expiresAt":    record.ExpiresAt,
 	})
 }
 

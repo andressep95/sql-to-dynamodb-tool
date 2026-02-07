@@ -30,5 +30,9 @@ module "api_gateway" {
   enable_access_logging     = true
   access_log_retention_days = 14
 
+  # JWT authorizer (Cognito)
+  jwt_issuer   = var.cognito_issuer_url
+  jwt_audience = var.cognito_client_id != null ? [var.cognito_client_id] : []
+
   tags = var.common_tags
 }

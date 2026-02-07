@@ -240,6 +240,101 @@ module "shared" {
   # Cloudflare security
   custom_domain                  = var.custom_domain
   cloudflare_secret_header_value = var.cloudflare_secret_header_value
+
+  # Cognito JWT
+  cognito_issuer_url = module.cognito.issuer_url
+  cognito_client_id  = module.cognito.client_id
+}
+
+# ============================================
+# Cognito User Pool
+# ============================================
+
+module "cognito" {
+  source = "../../modules/cognito"
+
+  user_pool_name = "${local.project_name}-${local.environment}-user-pool"
+  client_name    = "${local.project_name}-${local.environment}-spa-client"
+
+  password_minimum_length     = 8
+  mfa_configuration           = "OFF"
+  access_token_validity_hours = 1
+  refresh_token_validity_days = 30
+
+  post_confirmation_lambda_arn = module.cognito_trigger.function_arn
+
+  deletion_protection = false
+
+  tags = local.common_tags
+}
+
+# Cognito Trigger Lambda
+# ============================================
+
+resource "aws_iam_role" "cognito_trigger" {
+  name               = "${local.project_name}-${local.environment}-cognito-trigger-role"
+  assume_role_policy = local.lambda_assume_role_policy
+  tags               = local.common_tags
+}
+
+resource "aws_iam_role_policy_attachment" "cognito_trigger_basic_execution" {
+  role       = aws_iam_role.cognito_trigger.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+module "cognito_trigger" {
+  source        = "../../modules/lambda"
+  function_name = "${var.environment}-cognito-trigger"
+  filename      = abspath("${path.root}/../../../../lambda/cognito-trigger/function.zip")
+
+  source_code_hash = filebase64sha256(abspath("${path.root}/../../../../lambda/cognito-trigger/function.zip"))
+  role_arn         = aws_iam_role.cognito_trigger.arn
+  handler          = "bootstrap"
+  runtime          = "provided.al2023"
+  architecture     = "arm64"
+
+  memory_size = 128
+  timeout     = 10
+
+  environment_variables = {
+    DEFAULT_TENANT_ID = "public"
+  }
+
+  log_retention_days = 30
+  create_log_group   = true
+
+  environment = var.environment
+  tags = merge(local.common_tags, {
+    Component = "cognito-trigger"
+  })
+}
+
+resource "aws_lambda_permission" "cognito_trigger" {
+  statement_id  = "AllowCognitoInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = module.cognito_trigger.function_name
+  principal     = "cognito-idp.amazonaws.com"
+  source_arn    = module.cognito.user_pool_arn
+}
+
+resource "aws_iam_role_policy" "cognito_trigger_admin_update" {
+  name = "${var.environment}-cognito-trigger-cognito-policy"
+  role = aws_iam_role.cognito_trigger.name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "cognito-idp:AdminUpdateUserAttributes"
+        ]
+        Resource = [
+          module.cognito.user_pool_arn
+        ]
+      }
+    ]
+  })
 }
 
 # ============================================
