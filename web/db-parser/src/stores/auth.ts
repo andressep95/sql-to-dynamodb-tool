@@ -13,12 +13,18 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = ref(false)
   const userEmail = ref('')
   const tenantId = ref('')
+  const userRole = ref('')
   const loading = ref(false)
 
   const displayName = computed(() => {
     if (!userEmail.value) return ''
     return userEmail.value.split('@')[0]
   })
+
+  const isSuperAdmin = computed(() => userRole.value === 'SUPER_ADMIN')
+  const isRealmAdmin = computed(() => userRole.value === 'REALM_ADMIN')
+  const isRealmSupervisor = computed(() => userRole.value === 'REALM_SUPERVISOR')
+  const isUserTenant = computed(() => userRole.value === 'USER_TENANT')
 
   async function checkAuth() {
     loading.value = true
@@ -30,11 +36,13 @@ export const useAuthStore = defineStore('auth', () => {
         for (const attr of attrs) {
           if (attr.getName() === 'email') userEmail.value = attr.getValue()
           if (attr.getName() === 'custom:tenant_id') tenantId.value = attr.getValue()
+          if (attr.getName() === 'custom:role') userRole.value = attr.getValue()
         }
       } else {
         isAuthenticated.value = false
         userEmail.value = ''
         tenantId.value = ''
+        userRole.value = ''
       }
     } catch {
       isAuthenticated.value = false
@@ -52,6 +60,7 @@ export const useAuthStore = defineStore('auth', () => {
       const attrs = await getUserAttributes()
       for (const attr of attrs) {
         if (attr.getName() === 'custom:tenant_id') tenantId.value = attr.getValue()
+        if (attr.getName() === 'custom:role') userRole.value = attr.getValue()
       }
     } finally {
       loading.value = false
@@ -81,14 +90,20 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated.value = false
     userEmail.value = ''
     tenantId.value = ''
+    userRole.value = ''
   }
 
   return {
     isAuthenticated,
     userEmail,
     tenantId,
+    userRole,
     loading,
     displayName,
+    isSuperAdmin,
+    isRealmAdmin,
+    isRealmSupervisor,
+    isUserTenant,
     checkAuth,
     login,
     register,

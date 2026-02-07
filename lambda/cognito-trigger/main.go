@@ -30,8 +30,12 @@ func handler(ctx context.Context, event events.CognitoEventUserPoolsPostConfirma
 	if tenantID == "" {
 		tenantID = "public"
 	}
+	defaultRole := os.Getenv("DEFAULT_ROLE")
+	if defaultRole == "" {
+		defaultRole = "USER_TENANT"
+	}
 
-	log.Printf("Post-confirmation trigger for user %s in pool %s, assigning tenant: %s", username, userPoolID, tenantID)
+	log.Printf("Post-confirmation trigger for user %s in pool %s, assigning tenant: %s, role: %s", username, userPoolID, tenantID, defaultRole)
 
 	_, err := cognitoClient.AdminUpdateUserAttributes(ctx, &cognitoidentityprovider.AdminUpdateUserAttributesInput{
 		UserPoolId: aws.String(userPoolID),
@@ -41,14 +45,18 @@ func handler(ctx context.Context, event events.CognitoEventUserPoolsPostConfirma
 				Name:  aws.String("custom:tenant_id"),
 				Value: aws.String(tenantID),
 			},
+			{
+				Name:  aws.String("custom:role"),
+				Value: aws.String(defaultRole),
+			},
 		},
 	})
 	if err != nil {
-		log.Printf("ERROR: Failed to set tenant_id for user %s: %v", username, err)
+		log.Printf("ERROR: Failed to set attributes for user %s: %v", username, err)
 		return event, err
 	}
 
-	log.Printf("Successfully set custom:tenant_id=%s for user %s", tenantID, username)
+	log.Printf("Successfully set custom:tenant_id=%s and custom:role=%s for user %s", tenantID, defaultRole, username)
 	return event, nil
 }
 

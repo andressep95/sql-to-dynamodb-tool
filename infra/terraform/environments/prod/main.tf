@@ -194,6 +194,9 @@ module "lambda_components" {
   access_pattern_queue_url       = module.conversion_queue.access_pattern_queue_url
   access_pattern_queue_arn       = module.conversion_queue.access_pattern_queue_arn
   access_pattern_dlq_arn         = module.conversion_queue.access_pattern_dlq_arn
+
+  cognito_user_pool_id  = module.cognito.user_pool_id
+  cognito_user_pool_arn = module.cognito.user_pool_arn
 }
 
 # ============================================
@@ -216,6 +219,10 @@ module "shared" {
   query_handler_function_name = module.lambda_components.query_function_name
   query_handler_function_arn  = module.lambda_components.query_function_arn
   query_handler_invoke_arn    = module.lambda_components.query_invoke_arn
+
+  # Admin handler Lambda
+  admin_handler_function_name = module.lambda_components.admin_handler_function_name
+  admin_handler_invoke_arn    = module.lambda_components.admin_handler_invoke_arn
 
   # API Gateway config
   api_gateway_name = "${local.project_name}-api"

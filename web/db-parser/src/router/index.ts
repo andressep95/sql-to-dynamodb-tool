@@ -24,6 +24,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/tenants',
+      name: 'tenants',
+      component: () => import('@/views/TenantsView.vue'),
+      meta: { requiresAuth: true, roles: ['SUPER_ADMIN', 'REALM_ADMIN'] },
+    },
+    {
       path: '/:pathMatch(.*)*',
       redirect: '/',
     },
@@ -40,6 +46,8 @@ router.beforeEach(async (to, from, next) => {
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
     next('/login')
   } else if (to.meta.requiresGuest && auth.isAuthenticated) {
+    next('/')
+  } else if (to.meta.roles && !to.meta.roles.includes(auth.userRole)) {
     next('/')
   } else {
     next()

@@ -28,6 +28,17 @@ resource "aws_cognito_user_pool" "this" {
     }
   }
 
+  schema {
+    name                = "role"
+    attribute_data_type = "String"
+    mutable             = true
+
+    string_attribute_constraints {
+      min_length = 1
+      max_length = 50
+    }
+  }
+
   account_recovery_setting {
     recovery_mechanism {
       name     = "verified_email"

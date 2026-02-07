@@ -42,6 +42,12 @@ resource "aws_cloudfront_function" "verify_cf_secret" {
   code = <<-EOF
     function handler(event) {
       var request = event.request;
+      
+      // Allow OPTIONS requests for CORS preflight
+      if (request.method === 'OPTIONS') {
+        return request;
+      }
+      
       var secret = request.headers['x-origin-secret'];
       var expected = '${var.cloudflare_secret_header_value}';
       if (!secret || secret.value !== expected) {

@@ -9,7 +9,7 @@
     <!-- Navigation Menu -->
     <nav class="sidebar-nav">
       <router-link
-        v-for="item in menuItems"
+        v-for="item in visibleMenuItems"
         :key="item.path"
         :to="item.path"
         class="sidebar-item"
@@ -69,9 +69,15 @@ watch(isExpanded, (newValue) => {
 })
 
 const menuItems = [
-  { label: 'Parser', icon: 'pi pi-code', path: '/' },
-  { label: 'Historial', icon: 'pi pi-history', path: '/history' },
+  { label: 'Parser', icon: 'pi pi-code', path: '/', roles: ['SUPER_ADMIN', 'REALM_ADMIN', 'REALM_SUPERVISOR', 'USER_TENANT'] },
+  { label: 'Historial', icon: 'pi pi-history', path: '/history', roles: ['SUPER_ADMIN', 'REALM_ADMIN', 'REALM_SUPERVISOR', 'USER_TENANT'] },
+  { label: 'Usuarios', icon: 'pi pi-users', path: '/tenants', roles: ['SUPER_ADMIN', 'REALM_ADMIN'] },
 ]
+
+const visibleMenuItems = computed(() => {
+  const userRole = auth.userRole || 'USER_TENANT'
+  return menuItems.filter(item => item.roles.includes(userRole))
+})
 
 const userInitials = computed(() => {
   if (!auth.displayName) return 'U'

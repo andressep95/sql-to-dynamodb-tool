@@ -1,8 +1,7 @@
-import type { GetSchemasResponse, ParseSqlRequest, Conversion } from '@/models/schemas'
 import { getIdToken } from './authService'
 
 const API_BASE_URL = import.meta.env.VITE_BASE_PATH_URL || ''
-const ENDPOINT_URL = import.meta.env.VITE_ENDPOINT_URL || 'prod/api/v1/schemas'
+const API_VERSION = 'prod/api/v1'
 
 async function getHeaders(): Promise<HeadersInit> {
   const headers: HeadersInit = {
@@ -24,10 +23,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const errorBody = await response.json().catch(() => null)
     const message = errorBody?.message || getErrorMessage(response.status)
-    const err = new Error(message)
-    ;(err as any).details = errorBody?.details || []
-    ;(err as any).errorCode = errorBody?.error || 'UNKNOWN_ERROR'
-    throw err
+    throw new Error(message)
   }
   
   return response.json()
@@ -44,13 +40,40 @@ function getErrorMessage(status: number): string {
   }
 }
 
-export const getSchemas = async (): Promise<GetSchemasResponse> => {
+export interface User {
+  sub: string
+  email: string
+  role: string
+  tenantId: string
+  enabled: boolean
+}
+
+export interface CreateUserRequest {
+  email: string
+  password: string
+  role: string
+  tenantId: string
+}
+
+export interface Tenant {
+  id: string
+  name: string
+  description: string
+  userCount: number
+}
+
+export interface CreateTenantRequest {
+  name: string
+  description: string
+}
+
+export const getUsers = async (): Promise<{ users: User[]; count: number }> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/${ENDPOINT_URL}`, {
+    const response = await fetch(`${API_BASE_URL}/${API_VERSION}/users`, {
       method: 'GET',
       headers: await getHeaders(),
     })
-    return handleResponse<GetSchemasResponse>(response)
+    return handleResponse(response)
   } catch (error: any) {
     if (error.message === 'Failed to fetch') {
       throw new Error('No se pudo conectar con el servidor. Verifica tu conexión a internet.')
@@ -59,19 +82,14 @@ export const getSchemas = async (): Promise<GetSchemasResponse> => {
   }
 }
 
-export const parseSql = async (request: ParseSqlRequest): Promise<Conversion> => {
-  const body = {
-    sqlContent: request.sqlContent,
-    optimizationType: request.optimizationType ?? 'balanced',
-  }
-
+export const createUser = async (user: CreateUserRequest): Promise<any> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/${ENDPOINT_URL}`, {
+    const response = await fetch(`${API_BASE_URL}/${API_VERSION}/users`, {
       method: 'POST',
       headers: await getHeaders(),
-      body: JSON.stringify(body),
+      body: JSON.stringify(user),
     })
-    return handleResponse<Conversion>(response)
+    return handleResponse(response)
   } catch (error: any) {
     if (error.message === 'Failed to fetch') {
       throw new Error('No se pudo conectar con el servidor. Verifica tu conexión a internet.')
@@ -80,13 +98,29 @@ export const parseSql = async (request: ParseSqlRequest): Promise<Conversion> =>
   }
 }
 
-export const getSchemaById = async (conversionId: string): Promise<Conversion> => {
+export const getTenants = async (): Promise<{ tenants: Tenant[]; count: number }> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/${ENDPOINT_URL}/${conversionId}`, {
+    const response = await fetch(`${API_BASE_URL}/${API_VERSION}/tenants`, {
       method: 'GET',
       headers: await getHeaders(),
     })
-    return handleResponse<Conversion>(response)
+    return handleResponse(response)
+  } catch (error: any) {
+    if (error.message === 'Failed to fetch') {
+      throw new Error('No se pudo conectar con el servidor. Verifica tu conexión a internet.')
+    }
+    throw error
+  }
+}
+
+export const createTenant = async (tenant: CreateTenantRequest): Promise<any> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/${API_VERSION}/tenants`, {
+      method: 'POST',
+      headers: await getHeaders(),
+      body: JSON.stringify(tenant),
+    })
+    return handleResponse(response)
   } catch (error: any) {
     if (error.message === 'Failed to fetch') {
       throw new Error('No se pudo conectar con el servidor. Verifica tu conexión a internet.')

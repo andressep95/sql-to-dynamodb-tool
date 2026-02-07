@@ -20,6 +20,10 @@ module "api_gateway" {
     "POST /api/v1/schemas"     = { lambda_invoke_arn = var.lambda_invoke_arn, lambda_name = var.lambda_function_name }
     "GET /api/v1/schemas"      = { lambda_invoke_arn = var.query_handler_invoke_arn, lambda_name = var.query_handler_function_name }
     "GET /api/v1/schemas/{id}" = { lambda_invoke_arn = var.query_handler_invoke_arn, lambda_name = var.query_handler_function_name }
+    "GET /api/v1/users"        = { lambda_invoke_arn = var.admin_handler_invoke_arn, lambda_name = var.admin_handler_function_name }
+    "POST /api/v1/users"       = { lambda_invoke_arn = var.admin_handler_invoke_arn, lambda_name = var.admin_handler_function_name }
+    "GET /api/v1/tenants"      = { lambda_invoke_arn = var.admin_handler_invoke_arn, lambda_name = var.admin_handler_function_name }
+    "POST /api/v1/tenants"     = { lambda_invoke_arn = var.admin_handler_invoke_arn, lambda_name = var.admin_handler_function_name }
   }
 
   # Throttling configuration (production)

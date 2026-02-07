@@ -43,7 +43,7 @@ PENDING → PROCESSING → DESIGN_COMPLETED → PROCESSING_PATTERNS → COMPLETE
 
 | Servicio                   | Uso                                                                                                   |
 | -------------------------- | ----------------------------------------------------------------------------------------------------- |
-| **AWS Lambda (Go, ARM64)** | 5 funciones: Process Handler, Conversion Worker, Access Pattern Worker, Query Handler, DLQ Handler    |
+| **AWS Lambda (Go, ARM64)** | 6 funciones: Process Handler, Conversion Worker, Access Pattern Worker, Query Handler, Admin Handler, DLQ Handler |
 | **Amazon Bedrock**         | Claude 3.5 Sonnet v2 para conversión de esquemas, Claude 3.5 Haiku para generación de access patterns |
 
 ### Storage y Messaging
@@ -60,7 +60,8 @@ PENDING → PROCESSING → DESIGN_COMPLETED → PROCESSING_PATTERNS → COMPLETE
 | --------------------------------- | -------------------------------------------------------------------------------------------- |
 | **Amazon CloudFront**             | CDN con dos orígenes: S3 (frontend) y API Gateway (API). Origin Access Control (OAC) para S3 |
 | **AWS Certificate Manager (ACM)** | Certificado SSL para el dominio personalizado, validado por DNS                              |
-| **AWS API Gateway (HTTP v2)**     | Punto de entrada REST con rutas para `/api/v1/schemas`                                       |
+| **AWS API Gateway (HTTP v2)**     | Punto de entrada REST con rutas para `/api/v1/schemas`, `/api/v1/users`, `/api/v1/tenants`  |
+| **AWS Cognito**                   | User Pool con grupos multi-tenant (SUPER_ADMIN, REALM_ADMIN, REALM_SUPERVISOR, USER_TENANT) |
 | **AWS IAM**                       | Un rol por Lambda con políticas de mínimo privilegio                                         |
 
 ### Observabilidad
@@ -106,6 +107,7 @@ Cloudflare inyecta este header automáticamente via **Transform Rule** antes de 
 | **Frontend**        | Vue 3, PrimeVue, Pinia, Vue Router, TypeScript, Vite        |
 | **Backend**         | Go (ARM64 Graviton), AWS Lambda                             |
 | **IA**              | Amazon Bedrock (Claude 3.5 Sonnet v2, Claude 3.5 Haiku)     |
+| **Autenticación**   | AWS Cognito (User Pool, grupos multi-tenant)                |
 | **Infraestructura** | Terraform modular (10 módulos), S3 backend para state       |
 | **CDN/Security**    | Cloudflare (proxy, WAF, Transform Rules) + CloudFront + ACM |
 | **Dev local**       | LocalStack Pro con API Gateway REST v1                      |
@@ -118,8 +120,15 @@ Cloudflare inyecta este header automáticamente via **Transform Rule** antes de 
 │   ├── conversion-worker/         # Conversión SQL → DynamoDB via Bedrock
 │   ├── access-pattern-worker/     # Generación de access patterns via Bedrock
 │   ├── query/                     # Consulta de conversiones
+│   ├── admin-handler/             # Gestión de usuarios y tenants
 │   └── dlq-handler/               # Manejo de mensajes fallidos
 ├── web/db-parser/                 # Frontend Vue 3 SPA
+│   └── src/
+│       ├── views/                 # HomeView, HistoryView, TenantsView, LoginView
+│       ├── components/            # Sidebar
+│       ├── services/              # schemasApi, adminApi, authService
+│       ├── stores/                # Pinia stores (auth)
+│       └── models/                # TypeScript interfaces
 ├── docs/                          # Documentación detallada
 │   ├── infrastructure/            # Guía de Terraform y módulos
 │   ├── backend/                   # Guía de Lambda/Go
@@ -133,6 +142,7 @@ Cloudflare inyecta este header automáticamente via **Transform Rule** antes de 
 │   │   ├── sqs/                   # Colas + DLQ
 │   │   ├── s3/                    # Bucket frontend con upload de assets
 │   │   ├── cloudfront/            # CDN + OAC + ACM + CloudFront Function
+│   │   ├── cognito/               # User Pool + Client + Groups
 │   │   ├── bedrock/               # Model access y políticas IAM
 │   │   └── iam/                   # Roles y políticas por Lambda
 │   ├── environments/
@@ -142,13 +152,42 @@ Cloudflare inyecta este header automáticamente via **Transform Rule** antes de 
 └── spec/                          # Requerimientos y diagramas
 ```
 
+## Sistema de Autenticación Multi-Tenant
+
+### Roles y Permisos
+
+| Rol                  | Descripción                           | Acceso                       |
+| -------------------- | ------------------------------------- | ---------------------------- |
+| **SUPER_ADMIN**      | Administrador global                  | Todos los tenants y usuarios |
+| **REALM_ADMIN**      | Administrador de tenant               | Usuarios de su tenant        |
+| **REALM_SUPERVISOR** | Supervisor con permisos de lectura    | Conversiones de su tenant    |
+| **USER_TENANT**      | Usuario estándar                      | Conversiones de su tenant    |
+
+### Gestión Unificada
+
+- **Vista de Tenants**: Click en fila → Modal con usuarios del tenant
+- **Creación de usuarios**: Directamente desde el modal del tenant
+- **Aislamiento**: Cada tenant solo ve sus propios datos
+- **Roles configurables**: SUPER_ADMIN puede asignar REALM_ADMIN
+
 ## API Endpoints
+
+### Conversiones SQL
 
 | Método | Ruta                   | Descripción                                  |
 | ------ | ---------------------- | -------------------------------------------- |
 | `POST` | `/api/v1/schemas`      | Envía SQL, retorna `{id, status: "PENDING"}` |
 | `GET`  | `/api/v1/schemas`      | Lista conversiones del día actual            |
 | `GET`  | `/api/v1/schemas/{id}` | Detalle de una conversión específica         |
+
+### Administración (requiere autenticación)
+
+| Método | Ruta              | Roles                    | Descripción      |
+| ------ | ----------------- | ------------------------ | ---------------- |
+| `GET`  | `/api/v1/users`   | SUPER_ADMIN, REALM_ADMIN | Listar usuarios  |
+| `POST` | `/api/v1/users`   | SUPER_ADMIN, REALM_ADMIN | Crear usuario    |
+| `GET`  | `/api/v1/tenants` | SUPER_ADMIN, REALM_ADMIN | Listar tenants   |
+| `POST` | `/api/v1/tenants` | SUPER_ADMIN              | Crear tenant     |
 
 ## Quick Start
 

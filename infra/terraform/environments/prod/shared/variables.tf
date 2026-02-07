@@ -49,6 +49,18 @@ variable "query_handler_invoke_arn" {
   type        = string
 }
 
+variable "admin_handler_function_name" {
+  description = "Name of the admin handler Lambda function"
+  type        = string
+  default     = ""
+}
+
+variable "admin_handler_invoke_arn" {
+  description = "Invoke ARN of the admin handler Lambda function"
+  type        = string
+  default     = ""
+}
+
 # API Gateway configuration
 variable "api_gateway_name" {
   description = "Name for the API Gateway"

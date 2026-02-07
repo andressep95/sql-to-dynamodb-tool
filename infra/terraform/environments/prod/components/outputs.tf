@@ -75,3 +75,19 @@ output "access_pattern_worker_function_arn" {
   description = "ARN of the access pattern worker Lambda function"
   value       = module.access_pattern_worker.function_arn
 }
+
+# admin_handler Lambda outputs
+output "admin_handler_function_name" {
+  description = "Name of the admin handler Lambda function"
+  value       = module.admin_handler.function_name
+}
+
+output "admin_handler_function_arn" {
+  description = "ARN of the admin handler Lambda function"
+  value       = module.admin_handler.function_arn
+}
+
+output "admin_handler_invoke_arn" {
+  description = "Invoke ARN of the admin handler Lambda function"
+  value       = module.admin_handler.invoke_arn
+}

@@ -78,12 +78,11 @@ deploy-frontend: frontend
 	@echo "📤 Deploying frontend to S3..."
 	@BUCKET_NAME=$$(cd infra/terraform/environments/prod && terraform output -raw frontend_bucket_name) && \
 	DISTRIBUTION_ID=$$(cd infra/terraform/environments/prod && terraform output -raw cloudfront_distribution_id) && \
-	CLOUDFRONT_DOMAIN=$$(cd infra/terraform/environments/prod && terraform output -raw cloudfront_distribution_domain) && \
 	COGNITO_USER_POOL_ID=$$(cd infra/terraform/environments/prod && terraform output -raw cognito_user_pool_id) && \
 	COGNITO_CLIENT_ID=$$(cd infra/terraform/environments/prod && terraform output -raw cognito_client_id) && \
 	echo "🔧 Injecting environment variables..." && \
 	cd web/db-parser && \
-	VITE_BASE_PATH_URL=https://$$CLOUDFRONT_DOMAIN \
+	VITE_BASE_PATH_URL=https://app-sql.cloudcentinel.com \
 	VITE_ENDPOINT_URL=prod/api/v1/schemas \
 	VITE_COGNITO_USER_POOL_ID=$$COGNITO_USER_POOL_ID \
 	VITE_COGNITO_CLIENT_ID=$$COGNITO_CLIENT_ID \

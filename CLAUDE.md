@@ -1,40 +1,52 @@
 # SQL to DynamoDB Converter
 
-Sistema serverless que automatiza la migración de esquemas SQL relacionales a diseños optimizados de DynamoDB usando inteligencia artificial (AWS Bedrock - Claude).
+Sistema serverless que automatiza la migración de esquemas SQL relacionales a diseños optimizados de DynamoDB usando inteligencia artificial (AWS Bedrock - Claude). Incluye autenticación multi-tenant con AWS Cognito y gestión de usuarios con roles.
 
 ## Resumen del Proyecto
 
 | Aspecto           | Tecnología                              |
 | ----------------- | --------------------------------------- |
 | **Frontend**      | Vue 3 + TypeScript + PrimeVue           |
-| **Backend**       | 5 Lambda Functions (Go 1.x, ARM64)      |
+| **Backend**       | 6 Lambda Functions (Go 1.x, ARM64)      |
 | **IA**            | Claude 3.5 Sonnet v2 + Claude 3.5 Haiku |
+| **Autenticación** | AWS Cognito (Multi-tenant)              |
 | **Base de datos** | DynamoDB (TTL 24h)                      |
 | **Mensajería**    | SQS (2 colas + 2 DLQ)                   |
 | **API**           | HTTP API Gateway v2                     |
 | **CDN**           | CloudFront + Cloudflare                 |
-| **IaC**           | Terraform (7 módulos)                   |
+| **IaC**           | Terraform (10 módulos)                  |
 
 ## Estructura del Proyecto
 
 ```
 sql-to-nosql-parser/
-├── lambda/                    # Backend - 5 funciones Lambda (Go)
+├── lambda/                    # Backend - 6 funciones Lambda (Go)
 │   ├── diagrams/              # Process Handler - validación SQL
 │   ├── conversion-worker/     # SQL → DynamoDB (Bedrock Sonnet)
 │   ├── access-pattern-worker/ # Access patterns (Bedrock Haiku)
 │   ├── query/                 # Query Handler - obtener resultados
+│   ├── admin-handler/         # Admin Handler - gestión usuarios/tenants
 │   └── dlq-handler/           # Manejo de mensajes fallidos
 │
 ├── web/db-parser/             # Frontend - Vue 3 SPA
 │   └── src/
-│       ├── views/             # HomeView, HistoryView
+│       ├── views/             # HomeView, HistoryView, TenantsView, LoginView
 │       ├── components/        # Sidebar
-│       ├── services/          # API client
+│       ├── services/          # API client (schemasApi, adminApi, authService)
+│       ├── stores/            # Pinia stores (auth)
 │       └── models/            # TypeScript interfaces
 │
 ├── infra/terraform/           # Infraestructura como código
 │   ├── modules/               # 10 módulos reutilizables
+│   │   ├── lambda/            # Configuración Lambda genérica
+│   │   ├── gateway/           # API Gateway (HTTP v2 + REST v1)
+│   │   ├── dynamodb/          # Tabla con TTL y GSI
+│   │   ├── sqs/               # Colas + DLQ
+│   │   ├── s3/                # Bucket frontend
+│   │   ├── cloudfront/        # CDN + OAC + ACM + CloudFront Function
+│   │   ├── cognito/           # User Pool + Client + Groups
+│   │   ├── bedrock/           # Model access
+│   │   └── iam/               # Roles y políticas
 │   ├── environments/dev/      # LocalStack (desarrollo)
 │   └── environments/prod/     # AWS (producción)
 │
@@ -66,6 +78,34 @@ Usuario (SQL) → Frontend → API Gateway → Process Handler
                                               ↓
                         Frontend ← API Gateway ← Query Handler
 ```
+
+## Sistema de Autenticación Multi-Tenant
+
+### Roles y Permisos
+
+| Rol                | Descripción                                      | Acceso                          |
+| ------------------ | ------------------------------------------------ | ------------------------------- |
+| **SUPER_ADMIN**    | Administrador global (creado manualmente)        | Todos los tenants y usuarios    |
+| **REALM_ADMIN**    | Administrador de tenant                          | Usuarios de su tenant           |
+| **REALM_SUPERVISOR** | Supervisor con permisos de lectura             | Conversiones de su tenant       |
+| **USER_TENANT**    | Usuario estándar                                 | Conversiones de su tenant       |
+
+### Flujo de Autenticación
+
+```
+Login → Cognito → JWT Token → API Gateway Authorizer → Lambda
+                                      ↓
+                              Validación de tenant
+                                      ↓
+                              Filtrado por tenantId
+```
+
+### Gestión de Usuarios y Tenants
+
+- **Vista unificada**: Click en tenant → Modal con usuarios
+- **Creación de usuarios**: Directamente desde el modal del tenant
+- **Roles configurables**: SUPER_ADMIN puede asignar REALM_ADMIN
+- **Aislamiento**: Cada tenant solo ve sus propios datos
 
 ## Comandos Principales
 
@@ -105,12 +145,52 @@ LOCALSTACK_AUTH_TOKEN=...           # LocalStack Pro license
 AWS_ACCESS_KEY_ID=...               # AWS credentials
 AWS_SECRET_ACCESS_KEY=...
 TF_VAR_cloudflare_secret_header_value=...  # Header de seguridad
+
+# Frontend (.env.production)
+VITE_BASE_PATH_URL=https://app-sql.cloudcentinel.com
+VITE_ENDPOINT_URL=prod/api/v1/schemas
+VITE_COGNITO_USER_POOL_ID=...
+VITE_COGNITO_CLIENT_ID=...
 ```
 
 ## Endpoints API
+
+### Conversiones SQL
 
 | Método | Ruta                   | Lambda          | Descripción         |
 | ------ | ---------------------- | --------------- | ------------------- |
 | POST   | `/api/v1/schemas`      | process-handler | Iniciar conversión  |
 | GET    | `/api/v1/schemas`      | query-handler   | Listar conversiones |
 | GET    | `/api/v1/schemas/{id}` | query-handler   | Obtener por ID      |
+
+### Administración (requiere autenticación)
+
+| Método | Ruta                | Lambda        | Roles                      | Descripción          |
+| ------ | ------------------- | ------------- | -------------------------- | -------------------- |
+| GET    | `/api/v1/users`     | admin-handler | SUPER_ADMIN, REALM_ADMIN   | Listar usuarios      |
+| POST   | `/api/v1/users`     | admin-handler | SUPER_ADMIN, REALM_ADMIN   | Crear usuario        |
+| GET    | `/api/v1/tenants`   | admin-handler | SUPER_ADMIN, REALM_ADMIN   | Listar tenants       |
+| POST   | `/api/v1/tenants`   | admin-handler | SUPER_ADMIN                | Crear tenant         |
+
+## Seguridad
+
+### Cloudflare + CloudFront
+
+- **Full (strict) SSL**: Certificado ACM validado por DNS
+- **Header secreto**: CloudFront Function valida `x-origin-secret`
+- **Transform Rule**: Cloudflare inyecta el header automáticamente
+- **Resultado**: Acceso directo a CloudFront bloqueado (403)
+
+### Cognito
+
+- **JWT Tokens**: Validación en API Gateway
+- **Custom Claims**: `tenantId` y `role` en el token
+- **Password Policy**: Mínimo 8 caracteres, mayúsculas, números
+- **MFA**: Opcional por usuario
+
+## Tema Visual
+
+- **Color primario**: `#3b82f6` (azul)
+- **Framework UI**: PrimeVue Aura preset personalizado
+- **Responsive**: Mobile-first con sidebar colapsable
+- **Accesibilidad**: ARIA labels y navegación por teclado

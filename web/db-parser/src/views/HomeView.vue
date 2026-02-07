@@ -108,7 +108,7 @@ async function handleParse() {
         </ul>
       </div>
       <template #footer>
-        <Button label="Cerrar" icon="pi pi-times" severity="secondary" @click="errorModalVisible = false" />
+        <Button label="Cerrar" icon="pi pi-times" @click="errorModalVisible = false" />
       </template>
     </Dialog>
 
