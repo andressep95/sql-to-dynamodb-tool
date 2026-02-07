@@ -120,6 +120,11 @@ Cloudflare inyecta este header automáticamente via **Transform Rule** antes de 
 │   ├── query/                     # Consulta de conversiones
 │   └── dlq-handler/               # Manejo de mensajes fallidos
 ├── web/db-parser/                 # Frontend Vue 3 SPA
+├── docs/                          # Documentación detallada
+│   ├── infrastructure/            # Guía de Terraform y módulos
+│   ├── backend/                   # Guía de Lambda/Go
+│   ├── frontend/                  # Guía de Vue
+│   └── architecture/              # Diagramas y flujos
 ├── infra/terraform/
 │   ├── modules/                   # Módulos reutilizables
 │   │   ├── lambda/                # Configuración Lambda genérica
@@ -173,3 +178,13 @@ make localstack
 # Destruir entorno local
 make localstack-destroy
 ```
+
+## Documentación
+
+| Documento | Descripción |
+| --------- | ----------- |
+| [CLAUDE.md](CLAUDE.md) | Resumen ejecutivo del proyecto |
+| [docs/infrastructure/](docs/infrastructure/README.md) | Guía detallada de Terraform (~2,600 líneas) |
+| [docs/backend/](docs/backend/README.md) | Documentación de Lambda/Go |
+| [docs/frontend/](docs/frontend/README.md) | Documentación de Vue 3 |
+| [docs/architecture/](docs/architecture/README.md) | Diagramas y flujos del sistema |
