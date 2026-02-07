@@ -14,7 +14,9 @@ Sistema serverless que automatiza la migración de esquemas SQL relacionales a d
 | **Mensajería**    | SQS (2 colas + 2 DLQ)                   |
 | **API**           | HTTP API Gateway v2                     |
 | **CDN**           | CloudFront + Cloudflare                 |
-| **IaC**           | Terraform (10 módulos)                  |
+| **Email**         | Resend (invitaciones automáticas)       |
+| **Secretos**      | AWS Secrets Manager                     |
+| **IaC**           | Terraform (11 módulos)                  |
 
 ## Estructura del Proyecto
 
@@ -37,7 +39,7 @@ sql-to-nosql-parser/
 │       └── models/            # TypeScript interfaces
 │
 ├── infra/terraform/           # Infraestructura como código
-│   ├── modules/               # 10 módulos reutilizables
+│   ├── modules/               # 11 módulos reutilizables
 │   │   ├── lambda/            # Configuración Lambda genérica
 │   │   ├── gateway/           # API Gateway (HTTP v2 + REST v1)
 │   │   ├── dynamodb/          # Tabla con TTL y GSI
@@ -46,6 +48,7 @@ sql-to-nosql-parser/
 │   │   ├── cloudfront/        # CDN + OAC + ACM + CloudFront Function
 │   │   ├── cognito/           # User Pool + Client + Groups
 │   │   ├── bedrock/           # Model access
+│   │   ├── secrets-manager/   # Gestión segura de API keys
 │   │   └── iam/               # Roles y políticas
 │   ├── environments/dev/      # LocalStack (desarrollo)
 │   └── environments/prod/     # AWS (producción)
@@ -165,12 +168,69 @@ VITE_COGNITO_CLIENT_ID=...
 
 ### Administración (requiere autenticación)
 
-| Método | Ruta                | Lambda        | Roles                      | Descripción          |
-| ------ | ------------------- | ------------- | -------------------------- | -------------------- |
-| GET    | `/api/v1/users`     | admin-handler | SUPER_ADMIN, REALM_ADMIN   | Listar usuarios      |
-| POST   | `/api/v1/users`     | admin-handler | SUPER_ADMIN, REALM_ADMIN   | Crear usuario        |
-| GET    | `/api/v1/tenants`   | admin-handler | SUPER_ADMIN, REALM_ADMIN   | Listar tenants       |
-| POST   | `/api/v1/tenants`   | admin-handler | SUPER_ADMIN                | Crear tenant         |
+| Método | Ruta                          | Lambda        | Roles                      | Descripción                  |
+| ------ | ----------------------------- | ------------- | -------------------------- | ---------------------------- |
+| GET    | `/api/v1/users`               | admin-handler | SUPER_ADMIN, REALM_ADMIN   | Listar usuarios              |
+| POST   | `/api/v1/users`               | admin-handler | SUPER_ADMIN, REALM_ADMIN   | Crear usuario                |
+| GET    | `/api/v1/tenants`             | admin-handler | SUPER_ADMIN, REALM_ADMIN   | Listar tenants               |
+| POST   | `/api/v1/tenants`             | admin-handler | SUPER_ADMIN                | Crear tenant                 |
+| POST   | `/api/v1/invitations`         | admin-handler | SUPER_ADMIN, REALM_ADMIN   | Crear invitación (con email) |
+| GET    | `/api/v1/invitations/{code}`  | admin-handler | Público                    | Validar código               |
+| POST   | `/api/v1/register`            | admin-handler | Público                    | Registro con código          |
+
+## Sistema de Invitaciones
+
+### Flujo Completo
+
+1. **Admin genera invitación**
+   - Selecciona rol (USER_TENANT, REALM_SUPERVISOR, REALM_ADMIN*)
+   - Opcionalmente ingresa email del invitado
+   - Sistema valida que el email no exista en Cognito
+   - Genera código de 6 dígitos (expira en 7 días)
+
+2. **Envío automático de email** (si se proporciona email)
+   - Lambda lee API key desde AWS Secrets Manager (con cache)
+   - Envía email via Resend con template HTML profesional
+   - Incluye código y link directo: `https://app-sql.cloudcentinel.com/register?code=123456`
+
+3. **Usuario completa registro**
+   - Abre link o ingresa código manualmente
+   - Frontend valida código con backend
+   - Usuario ingresa email y password
+   - Backend crea usuario en Cognito con atributos del tenant
+   - Marca invitación como usada
+
+### Características
+
+- ✅ **Validación de email único**: Previene invitaciones a usuarios existentes
+- ✅ **Envío automático**: Resend API (100 emails/día gratis)
+- ✅ **Seguridad**: API key en AWS Secrets Manager
+- ✅ **Performance**: Cache en memoria del API key
+- ✅ **Rotación sin downtime**: Actualizar secreto sin redesplegar
+- ✅ **Auditoría**: CloudTrail registra acceso a secretos
+
+### Resend Integration
+
+**Configuración:**
+
+```go
+// Lambda lee secreto con cache
+apiKey, err := getResendAPIKey(ctx)
+
+// Envía email
+emailReq := ResendEmailRequest{
+    From:    "SQL to NoSQL Parser <onboarding@resend.dev>",
+    To:      []string{email},
+    Subject: "Invitación a SQL to NoSQL Parser",
+    HTML:    htmlTemplate,
+}
+```
+
+**Costos estimados (50 invitaciones/día):**
+
+- Resend: $0 (tier gratuito)
+- Secrets Manager: $0.40/mes
+- Total: ~$0.41/mes
 
 ## Seguridad
 

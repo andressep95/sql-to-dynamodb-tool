@@ -197,6 +197,10 @@ module "lambda_components" {
 
   cognito_user_pool_id  = module.cognito.user_pool_id
   cognito_user_pool_arn = module.cognito.user_pool_arn
+  
+  resend_api_key    = var.resend_api_key
+  custom_domain     = var.custom_domain
+  resend_secret_arn = module.resend_secret.secret_arn
 }
 
 # ============================================

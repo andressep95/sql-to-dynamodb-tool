@@ -69,3 +69,9 @@ variable "cloudflare_secret_header_value" {
   type        = string
   sensitive   = true
 }
+
+variable "resend_api_key" {
+  description = "Resend API key for sending invitation emails"
+  type        = string
+  sensitive   = true
+}

@@ -64,8 +64,9 @@ resource "aws_apigatewayv2_route" "this" {
   route_key = each.key
   target    = "integrations/${aws_apigatewayv2_integration.lambda[local.route_lambdas[each.key].name].id}"
 
-  authorization_type = var.jwt_issuer != null ? "JWT" : "NONE"
-  authorizer_id      = var.jwt_issuer != null ? aws_apigatewayv2_authorizer.jwt[0].id : null
+  # Allow per-route authorization override
+  authorization_type = lookup(each.value, "public", false) ? "NONE" : (var.jwt_issuer != null ? "JWT" : "NONE")
+  authorizer_id      = lookup(each.value, "public", false) ? null : (var.jwt_issuer != null ? aws_apigatewayv2_authorizer.jwt[0].id : null)
 }
 
 # CloudWatch Log Group for Access Logs (conditional)

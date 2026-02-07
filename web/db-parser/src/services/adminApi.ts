@@ -67,6 +67,26 @@ export interface CreateTenantRequest {
   description: string
 }
 
+export interface CreateInvitationRequest {
+  tenantId: string
+  role: string
+  email?: string
+}
+
+export interface InvitationResponse {
+  code: string
+  tenantId: string
+  role: string
+  expiresAt: number
+  createdBy: string
+}
+
+export interface RegisterRequest {
+  invitationCode: string
+  email: string
+  password: string
+}
+
 export const getUsers = async (): Promise<{ users: User[]; count: number }> => {
   try {
     const response = await fetch(`${API_BASE_URL}/${API_VERSION}/users`, {
@@ -119,6 +139,52 @@ export const createTenant = async (tenant: CreateTenantRequest): Promise<any> =>
       method: 'POST',
       headers: await getHeaders(),
       body: JSON.stringify(tenant),
+    })
+    return handleResponse(response)
+  } catch (error: any) {
+    if (error.message === 'Failed to fetch') {
+      throw new Error('No se pudo conectar con el servidor. Verifica tu conexión a internet.')
+    }
+    throw error
+  }
+}
+
+export const createInvitation = async (invitation: CreateInvitationRequest): Promise<InvitationResponse> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/${API_VERSION}/invitations`, {
+      method: 'POST',
+      headers: await getHeaders(),
+      body: JSON.stringify(invitation),
+    })
+    return handleResponse(response)
+  } catch (error: any) {
+    if (error.message === 'Failed to fetch') {
+      throw new Error('No se pudo conectar con el servidor. Verifica tu conexión a internet.')
+    }
+    throw error
+  }
+}
+
+export const getInvitation = async (code: string): Promise<InvitationResponse> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/${API_VERSION}/invitations/${code}`, {
+      method: 'GET',
+    })
+    return handleResponse(response)
+  } catch (error: any) {
+    if (error.message === 'Failed to fetch') {
+      throw new Error('No se pudo conectar con el servidor. Verifica tu conexión a internet.')
+    }
+    throw error
+  }
+}
+
+export const register = async (data: RegisterRequest): Promise<any> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/${API_VERSION}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
     })
     return handleResponse(response)
   } catch (error: any) {

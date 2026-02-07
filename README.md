@@ -60,9 +60,16 @@ PENDING → PROCESSING → DESIGN_COMPLETED → PROCESSING_PATTERNS → COMPLETE
 | --------------------------------- | -------------------------------------------------------------------------------------------- |
 | **Amazon CloudFront**             | CDN con dos orígenes: S3 (frontend) y API Gateway (API). Origin Access Control (OAC) para S3 |
 | **AWS Certificate Manager (ACM)** | Certificado SSL para el dominio personalizado, validado por DNS                              |
-| **AWS API Gateway (HTTP v2)**     | Punto de entrada REST con rutas para `/api/v1/schemas`, `/api/v1/users`, `/api/v1/tenants`  |
+| **AWS API Gateway (HTTP v2)**     | Punto de entrada REST con rutas para `/api/v1/schemas`, `/api/v1/users`, `/api/v1/tenants`, `/api/v1/invitations`  |
 | **AWS Cognito**                   | User Pool con grupos multi-tenant (SUPER_ADMIN, REALM_ADMIN, REALM_SUPERVISOR, USER_TENANT) |
+| **AWS Secrets Manager**           | Almacenamiento seguro de API keys (Resend) con rotación sin downtime                         |
 | **AWS IAM**                       | Un rol por Lambda con políticas de mínimo privilegio                                         |
+
+### Comunicaciones
+
+| Servicio   | Uso                                                                                    |
+| ---------- | -------------------------------------------------------------------------------------- |
+| **Resend** | Servicio de email transaccional para envío de invitaciones (100 emails/día en tier gratuito) |
 
 ### Observabilidad
 
@@ -144,6 +151,7 @@ Cloudflare inyecta este header automáticamente via **Transform Rule** antes de 
 │   │   ├── cloudfront/            # CDN + OAC + ACM + CloudFront Function
 │   │   ├── cognito/               # User Pool + Client + Groups
 │   │   ├── bedrock/               # Model access y políticas IAM
+│   │   ├── secrets-manager/       # Gestión segura de API keys
 │   │   └── iam/                   # Roles y políticas por Lambda
 │   ├── environments/
 │   │   ├── dev/                   # LocalStack (desarrollo local)
@@ -163,10 +171,35 @@ Cloudflare inyecta este header automáticamente via **Transform Rule** antes de 
 | **REALM_SUPERVISOR** | Supervisor con permisos de lectura    | Conversiones de su tenant    |
 | **USER_TENANT**      | Usuario estándar                      | Conversiones de su tenant    |
 
+### Sistema de Invitaciones
+
+El sistema permite invitar usuarios mediante códigos de invitación con envío automático de emails:
+
+**Flujo de Invitación:**
+
+1. Admin (SUPER_ADMIN o REALM_ADMIN) genera código de invitación
+2. Selecciona el rol del invitado (USER_TENANT, REALM_SUPERVISOR, REALM_ADMIN*)
+3. Opcionalmente ingresa email del invitado
+4. Sistema valida que el email no exista en la plataforma
+5. Si se proporciona email, envía automáticamente via Resend
+6. Código expira en 7 días
+7. Usuario completa registro con el código
+
+*Solo SUPER_ADMIN puede invitar REALM_ADMIN
+
+**Características:**
+
+- ✅ Validación de email único (previene invitaciones duplicadas)
+- ✅ Envío automático de emails con Resend
+- ✅ Template HTML profesional con código y link directo
+- ✅ API key almacenada en AWS Secrets Manager
+- ✅ Cache en memoria para performance
+- ✅ Códigos de 6 dígitos fáciles de compartir
+
 ### Gestión Unificada
 
 - **Vista de Tenants**: Click en fila → Modal con usuarios del tenant
-- **Creación de usuarios**: Directamente desde el modal del tenant
+- **Invitar Usuario**: Genera código con envío automático de email
 - **Aislamiento**: Cada tenant solo ve sus propios datos
 - **Roles configurables**: SUPER_ADMIN puede asignar REALM_ADMIN
 
@@ -182,12 +215,37 @@ Cloudflare inyecta este header automáticamente via **Transform Rule** antes de 
 
 ### Administración (requiere autenticación)
 
-| Método | Ruta              | Roles                    | Descripción      |
-| ------ | ----------------- | ------------------------ | ---------------- |
-| `GET`  | `/api/v1/users`   | SUPER_ADMIN, REALM_ADMIN | Listar usuarios  |
-| `POST` | `/api/v1/users`   | SUPER_ADMIN, REALM_ADMIN | Crear usuario    |
-| `GET`  | `/api/v1/tenants` | SUPER_ADMIN, REALM_ADMIN | Listar tenants   |
-| `POST` | `/api/v1/tenants` | SUPER_ADMIN              | Crear tenant     |
+| Método | Ruta                          | Roles                    | Descripción                    |
+| ------ | ----------------------------- | ------------------------ | ------------------------------ |
+| `GET`  | `/api/v1/users`               | SUPER_ADMIN, REALM_ADMIN | Listar usuarios                |
+| `POST` | `/api/v1/users`               | SUPER_ADMIN, REALM_ADMIN | Crear usuario                  |
+| `GET`  | `/api/v1/tenants`             | SUPER_ADMIN, REALM_ADMIN | Listar tenants                 |
+| `POST` | `/api/v1/tenants`             | SUPER_ADMIN              | Crear tenant                   |
+| `POST` | `/api/v1/invitations`         | SUPER_ADMIN, REALM_ADMIN | Crear invitación (con email)   |
+| `GET`  | `/api/v1/invitations/{code}`  | Público                  | Validar código de invitación   |
+| `POST` | `/api/v1/register`            | Público                  | Completar registro con código  |
+
+## Seguridad
+
+### AWS Secrets Manager
+
+Las credenciales sensibles (API keys) se almacenan en AWS Secrets Manager:
+
+- **Resend API Key**: `prod-resend-api-key`
+- Rotación sin downtime
+- Auditoría con CloudTrail
+- Cache en memoria de Lambda para performance
+- Políticas IAM de mínimo privilegio
+
+**Rotar API key:**
+
+```bash
+aws secretsmanager update-secret \
+  --secret-id prod-resend-api-key \
+  --secret-string "nuevo_api_key"
+```
+
+La Lambda usará el nuevo key en el próximo cold start.
 
 ## Quick Start
 

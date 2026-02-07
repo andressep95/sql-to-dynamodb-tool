@@ -8,7 +8,7 @@ import InputText from 'primevue/inputtext'
 import Password from 'primevue/password'
 import Dropdown from 'primevue/dropdown'
 import { useToast } from 'primevue/usetoast'
-import { getTenants, createTenant, getUsers, createUser, type Tenant, type CreateTenantRequest, type User, type CreateUserRequest } from '@/services/adminApi'
+import { getTenants, createTenant, getUsers, createUser, createInvitation, type Tenant, type CreateTenantRequest, type User, type CreateUserRequest, type InvitationResponse } from '@/services/adminApi'
 
 const toast = useToast()
 
@@ -18,7 +18,11 @@ const loading = ref(false)
 const showTenantDialog = ref(false)
 const showUsersDialog = ref(false)
 const showCreateUserDialog = ref(false)
+const showInvitationDialog = ref(false)
 const selectedTenant = ref<Tenant | null>(null)
+const invitation = ref<InvitationResponse | null>(null)
+const selectedRole = ref('USER_TENANT')
+const invitationEmail = ref('')
 
 const newTenant = ref<CreateTenantRequest>({
   name: '',
@@ -41,6 +45,11 @@ const roles = [
 const tenantUsers = computed(() => {
   if (!selectedTenant.value) return []
   return allUsers.value.filter(u => u.tenantId === selectedTenant.value!.id)
+})
+
+const invitationLink = computed(() => {
+  if (!invitation.value) return ''
+  return `${window.location.origin}/register?code=${invitation.value.code}`
 })
 
 onMounted(() => {
@@ -111,6 +120,40 @@ async function handleCreateUser() {
     toast.add({ severity: 'error', summary: 'Error', detail: error.message, life: 3000 })
   }
 }
+
+async function openInvitationDialog() {
+  selectedRole.value = 'USER_TENANT'
+  invitationEmail.value = ''
+  invitation.value = null
+  showInvitationDialog.value = true
+}
+
+async function generateInvitation() {
+  loading.value = true
+  try {
+    invitation.value = await createInvitation({
+      tenantId: selectedTenant.value!.id,
+      role: selectedRole.value,
+      email: invitationEmail.value || undefined,
+    })
+    const emailMsg = invitationEmail.value ? ` y enviado a ${invitationEmail.value}` : ''
+    toast.add({ severity: 'success', summary: 'Invitación creada', detail: `Código generado exitosamente${emailMsg}`, life: 3000 })
+  } catch (error: any) {
+    toast.add({ severity: 'error', summary: 'Error', detail: error.message, life: 3000 })
+  } finally {
+    loading.value = false
+  }
+}
+
+function copyToClipboard(text: string) {
+  navigator.clipboard.writeText(text)
+  toast.add({ severity: 'success', summary: 'Copiado', detail: 'Código copiado al portapapeles', life: 2000 })
+}
+
+function copyLinkToClipboard() {
+  navigator.clipboard.writeText(invitationLink.value)
+  toast.add({ severity: 'success', summary: 'Copiado', detail: 'Enlace copiado al portapapeles', life: 2000 })
+}
 </script>
 
 <template>
@@ -150,7 +193,10 @@ async function handleCreateUser() {
       <div class="users-section">
         <div class="users-header">
           <p class="tenant-info">{{ selectedTenant?.description }}</p>
-          <Button label="Agregar Usuario" icon="pi pi-user-plus" size="small" @click="openCreateUserDialog" />
+          <div class="header-actions">
+            <Button label="Invitar" icon="pi pi-send" size="small" @click="openInvitationDialog" />
+            <Button label="Agregar Usuario" icon="pi pi-user-plus" size="small" @click="openCreateUserDialog" />
+          </div>
         </div>
         
         <DataTable :value="tenantUsers" :rows="5" paginator>
@@ -186,6 +232,61 @@ async function handleCreateUser() {
       <template #footer>
         <Button label="Cancelar" text @click="showCreateUserDialog = false" />
         <Button label="Crear" @click="handleCreateUser" />
+      </template>
+    </Dialog>
+
+    <!-- Dialog Invitación -->
+    <Dialog v-model:visible="showInvitationDialog" header="Generar Invitación" :modal="true" dismissableMask :style="{ width: '500px' }">
+      <div class="dialog-content">
+        <p class="invitation-description">
+          Genera un código de invitación para que nuevos usuarios se registren en este tenant.
+          El código expira en 7 días.
+        </p>
+
+        <div class="field">
+          <label for="invitationRole">Rol del invitado</label>
+          <Dropdown id="invitationRole" v-model="selectedRole" :options="roles" optionLabel="label" optionValue="value" :fluid="true" />
+        </div>
+
+        <div class="field">
+          <label for="invitationEmail">Email (opcional)</label>
+          <InputText 
+            id="invitationEmail" 
+            v-model="invitationEmail" 
+            type="email"
+            placeholder="usuario@ejemplo.com"
+            :fluid="true"
+          />
+          <small class="field-hint">Si proporcionas un email, se enviará automáticamente el enlace de invitación</small>
+        </div>
+
+        <Button 
+          v-if="!invitation" 
+          label="Generar Código" 
+          icon="pi pi-ticket" 
+          :loading="loading" 
+          @click="generateInvitation" 
+          :fluid="true"
+        />
+
+        <div v-if="invitation" class="invitation-result">
+
+          <div class="link-display">
+            <span class="code-label">Enlace de Registro:</span>
+            <div class="link-value">
+              <InputText :value="invitationLink" readonly :fluid="true" />
+              <Button icon="pi pi-copy" @click="copyLinkToClipboard" />
+            </div>
+          </div>
+
+          <div class="invitation-details">
+            <p><strong>Rol:</strong> {{ invitation.role }}</p>
+            <p><strong>Expira:</strong> {{ new Date(invitation.expiresAt * 1000).toLocaleString() }}</p>
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <Button label="Cerrar" @click="showInvitationDialog = false" />
       </template>
     </Dialog>
   </div>
@@ -264,5 +365,82 @@ async function handleCreateUser() {
 .status-inactive {
   color: #dc2626;
   font-weight: 500;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.invitation-description {
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin: 0 0 1rem 0;
+}
+
+.invitation-result {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+
+.code-display,
+.link-display {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.code-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.code-value {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 2px solid #3b82f6;
+}
+
+.code-text {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #3b82f6;
+  letter-spacing: 0.5rem;
+  flex: 1;
+  text-align: center;
+}
+
+.link-value {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.invitation-details {
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.invitation-details p {
+  margin: 0.25rem 0;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.field-hint {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-style: italic;
 }
 </style>

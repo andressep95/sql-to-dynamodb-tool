@@ -149,7 +149,7 @@ resource "aws_cloudfront_distribution" "this" {
 
   # Ordered cache behavior: API Gateway (no caching)
   ordered_cache_behavior {
-    path_pattern           = "/prod/api/*"
+    path_pattern           = "/prod/*"
     allowed_methods        = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
     cached_methods         = ["GET", "HEAD"]
     target_origin_id       = local.api_gateway_origin_id

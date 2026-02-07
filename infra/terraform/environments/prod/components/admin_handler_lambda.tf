@@ -16,7 +16,10 @@ module "admin_handler" {
   timeout     = 30
 
   environment_variables = {
-    COGNITO_USER_POOL_ID = var.cognito_user_pool_id
+    COGNITO_USER_POOL_ID  = var.cognito_user_pool_id
+    INVITATIONS_TABLE     = "${var.environment}-invitations"
+    RESEND_SECRET_NAME    = "${var.environment}-resend-api-key"
+    APP_URL               = "https://${var.custom_domain}"
   }
 
   log_retention_days = 30
@@ -75,3 +78,47 @@ resource "aws_iam_role_policy" "admin_handler_cognito" {
     ]
   })
 }
+
+# DynamoDB permissions for invitations table
+resource "aws_iam_role_policy" "admin_handler_invitations" {
+  name = "${var.environment}-admin-handler-invitations-policy"
+  role = aws_iam_role.admin_handler.name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:PutItem",
+          "dynamodb:GetItem",
+          "dynamodb:UpdateItem",
+          "dynamodb:DeleteItem"
+        ]
+        Resource = "arn:aws:dynamodb:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:table/${var.environment}-invitations"
+      }
+    ]
+  })
+}
+
+# Secrets Manager permissions for Resend API key
+resource "aws_iam_role_policy" "admin_handler_secrets" {
+  name = "${var.environment}-admin-handler-secrets-policy"
+  role = aws_iam_role.admin_handler.name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue"
+        ]
+        Resource = var.resend_secret_arn
+      }
+    ]
+  })
+}
+
+data "aws_region" "current" {}
+data "aws_caller_identity" "current" {}

@@ -31,12 +31,35 @@ module "schemas_table" {
     },
   ]
 
+  # TTL deshabilitado - usuario elimina manualmente
+  ttl_attribute = null
+
   # Production: enable point-in-time recovery
   point_in_time_recovery = true
 
   # CloudWatch throttle alarm
   create_throttle_alarm = true
   alarm_sns_topic_arns  = [aws_sns_topic.alarms.arn]
+
+  tags = var.common_tags
+}
+
+# ============================================
+# Invitations Table - Códigos de invitación temporales
+# ============================================
+
+module "invitations_table" {
+  source = "../../../modules/dynamodb"
+
+  table_name   = "${var.environment}-invitations"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "invitationCode"
+
+  # TTL para expiración automática (24 horas)
+  ttl_attribute = "expiresAt"
+
+  point_in_time_recovery = false
+  create_throttle_alarm  = false
 
   tags = var.common_tags
 }

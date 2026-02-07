@@ -89,3 +89,19 @@ variable "cognito_user_pool_arn" {
   description = "Cognito User Pool ARN"
   type        = string
 }
+
+variable "resend_api_key" {
+  description = "Resend API key for sending emails"
+  type        = string
+  sensitive   = true
+}
+
+variable "custom_domain" {
+  description = "Custom domain for the application"
+  type        = string
+}
+
+variable "resend_secret_arn" {
+  description = "ARN of the Resend API key secret in Secrets Manager"
+  type        = string
+}

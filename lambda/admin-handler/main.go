@@ -109,10 +109,37 @@ func handler(ctx context.Context, req events.APIGatewayV2HTTPRequest) (V2Respons
 		return handleCreateTenant(ctx, claims, req.Body)
 	}
 
+	// POST /api/v1/invitations
+	if method == "POST" && strings.HasSuffix(path, "/api/v1/invitations") {
+		return handleCreateInvitation(ctx, claims, req.Body)
+	}
+
+	// GET /api/v1/invitations/{code}
+	if method == "GET" && strings.Contains(path, "/api/v1/invitations/") {
+		parts := strings.Split(path, "/")
+		code := parts[len(parts)-1]
+		return handleGetInvitation(ctx, code)
+	}
+
+	// POST /api/v1/register (público, sin autenticación)
+	if method == "POST" && strings.HasSuffix(path, "/api/v1/register") {
+		return handleRegister(ctx, req.Body)
+	}
+
 	return jsonResponse(404, map[string]string{"error": "NOT_FOUND", "message": "Route not found"})
 }
 
 func extractClaims(req events.APIGatewayV2HTTPRequest) *UserClaims {
+	// Permitir registro sin autenticación
+	if req.RequestContext.HTTP.Method == "POST" && strings.HasSuffix(req.RequestContext.HTTP.Path, "/api/v1/register") {
+		return &UserClaims{} // Claims vacíos para registro público
+	}
+
+	// Permitir consulta de invitación sin autenticación
+	if req.RequestContext.HTTP.Method == "GET" && strings.Contains(req.RequestContext.HTTP.Path, "/api/v1/invitations/") {
+		return &UserClaims{} // Claims vacíos para consulta pública
+	}
+
 	if req.RequestContext.Authorizer == nil || req.RequestContext.Authorizer.JWT == nil {
 		return nil
 	}

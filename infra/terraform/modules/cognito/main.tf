@@ -52,8 +52,31 @@ resource "aws_cognito_user_pool" "this" {
 
   verification_message_template {
     default_email_option = "CONFIRM_WITH_CODE"
-    email_subject        = "Tu código de verificación"
-    email_message        = "Tu código de verificación es {####}"
+    email_subject        = "Bienvenido a SQL to DynamoDB Converter"
+    email_message        = <<-EOT
+      <html>
+        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+            <h1 style="color: white; margin: 0;">SQL to DynamoDB Converter</h1>
+          </div>
+          <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px;">
+            <h2 style="color: #111827; margin-top: 0;">¡Bienvenido!</h2>
+            <p style="color: #374151; font-size: 16px; line-height: 1.6;">
+              Gracias por unirte a nuestra plataforma. Para completar tu registro, por favor usa el siguiente código de verificación:
+            </p>
+            <div style="background: white; border: 2px solid #3b82f6; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
+              <span style="font-size: 32px; font-weight: bold; color: #3b82f6; letter-spacing: 5px;">{####}</span>
+            </div>
+            <p style="color: #6b7280; font-size: 14px; margin-top: 20px;">
+              Este código expirará en 24 horas. Si no solicitaste este registro, puedes ignorar este mensaje.
+            </p>
+          </div>
+          <div style="text-align: center; padding: 20px; color: #9ca3af; font-size: 12px;">
+            <p>© 2026 SQL to DynamoDB Converter. Todos los derechos reservados.</p>
+          </div>
+        </body>
+      </html>
+    EOT
   }
 
   dynamic "lambda_config" {
