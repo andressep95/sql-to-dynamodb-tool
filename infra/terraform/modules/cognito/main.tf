@@ -116,6 +116,24 @@ resource "aws_cognito_user_pool_client" "this" {
     refresh_token = "days"
   }
 
+  # ==========================================
+  # Attribute permissions (app client level)
+  # Users can READ tenant_id and role (for UI),
+  # but CANNOT WRITE them. Only admins can
+  # change these via AdminUpdateUserAttributes.
+  # Ref: https://docs.aws.amazon.com/cognito/latest/developerguide/multi-tenancy-security-recommendations.html
+  # ==========================================
+  read_attributes = [
+    "email",
+    "email_verified",
+    "custom:tenant_id",
+    "custom:role",
+  ]
+
+  write_attributes = [
+    "email",
+  ]
+
   callback_urls = var.callback_urls
   logout_urls   = var.logout_urls
 

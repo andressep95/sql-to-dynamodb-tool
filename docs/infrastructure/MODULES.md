@@ -15,6 +15,7 @@ Documentación exhaustiva de cada módulo Terraform del proyecto.
 | [s3](#s3) | `modules/s3/` | Buckets S3 |
 | [cloudfront](#cloudfront) | `modules/cloudfront/` | CDN y distribución |
 | [bedrock](#bedrock) | `modules/bedrock/` | Acceso a modelos IA |
+| [cognito](#cognito) | `modules/cognito/` | User Pool + App Client |
 
 > **Nota:** No existe un módulo IAM centralizado. Las políticas IAM se definen junto a los recursos que protegen. Ver [ADR-001](../architecture/decisions/001-iam-policy-colocation.md).
 
@@ -1287,6 +1288,113 @@ resource "aws_iam_role_policy_attachment" "bedrock" {
 
   role       = element(split("/", var.lambda_role_arns[count.index]), 1)
   policy_arn = aws_iam_policy.bedrock_invoke.arn
+}
+```
+
+---
+
+## Cognito
+
+**Path:** `modules/cognito/`
+
+### Descripcion
+
+Modulo para AWS Cognito User Pool con:
+- User Pool con atributos custom (`tenant_id`, `role`) para multi-tenancy
+- App Client (SPA, sin secret) con permisos de atributos restringidos
+- Deletion protection configurable
+- Post-confirmation Lambda trigger opcional
+
+### Archivos
+
+```
+modules/cognito/
+├── main.tf           # User Pool + App Client
+├── variables.tf      # Variables de entrada
+└── outputs.tf        # Outputs (pool_id, client_id, issuer_url)
+```
+
+### Variables
+
+```hcl
+variable "user_pool_name" {
+  description = "Nombre del User Pool"
+  type        = string
+}
+
+variable "client_name" {
+  description = "Nombre del App Client"
+  type        = string
+}
+
+variable "password_minimum_length" {
+  type    = number
+  default = 8
+}
+
+variable "mfa_configuration" {
+  type    = string
+  default = "OFF"
+}
+
+variable "deletion_protection" {
+  description = "Proteccion contra eliminacion accidental del User Pool"
+  type        = bool
+  default     = true
+}
+
+variable "post_confirmation_lambda_arn" {
+  description = "ARN de Lambda trigger post-confirmacion"
+  type        = string
+  default     = null
+}
+```
+
+### Seguridad de Atributos Multi-Tenant
+
+Los atributos `custom:tenant_id` y `custom:role` se definen como `mutable = true` en el schema
+para permitir que los admins los modifiquen via `AdminUpdateUserAttributes`.
+
+Sin embargo, a nivel de **App Client**, estos atributos son **read-only**:
+
+```hcl
+# El usuario (SPA) puede LEER pero NO ESCRIBIR tenant_id y role
+read_attributes = ["email", "email_verified", "custom:tenant_id", "custom:role"]
+write_attributes = ["email"]
+```
+
+Esto garantiza que:
+- **Usuarios desde el SPA**: No pueden cambiar su `tenant_id` ni `role`
+- **SUPER_ADMIN / REALM_ADMIN**: Pueden cambiarlos via el Lambda admin-handler (`AdminUpdateUserAttributes` bypasea restricciones del client)
+
+Ref: [AWS Multi-tenancy Security Recommendations](https://docs.aws.amazon.com/cognito/latest/developerguide/multi-tenancy-security-recommendations.html)
+
+### Outputs
+
+```hcl
+output "user_pool_id"       { value = aws_cognito_user_pool.this.id }
+output "user_pool_arn"      { value = aws_cognito_user_pool.this.arn }
+output "user_pool_endpoint" { value = aws_cognito_user_pool.this.endpoint }
+output "client_id"          { value = aws_cognito_user_pool_client.this.id }
+output "issuer_url"         { value = "https://cognito-idp.{region}.amazonaws.com/{pool_id}" }
+```
+
+### Uso
+
+```hcl
+module "cognito" {
+  source = "../../modules/cognito"
+
+  user_pool_name = "${local.project_name}-${local.environment}-user-pool"
+  client_name    = "${local.project_name}-${local.environment}-spa-client"
+
+  password_minimum_length     = 8
+  mfa_configuration           = "OFF"
+  deletion_protection         = true  # Habilitado en produccion
+
+  post_confirmation_lambda_arn = module.cognito_trigger.function_arn
+
+  tags = local.common_tags
 }
 ```
 

@@ -247,6 +247,8 @@ emailReq := ResendEmailRequest{
 - **Custom Claims**: `tenantId` y `role` en el token
 - **Password Policy**: Mínimo 8 caracteres, mayúsculas, números
 - **MFA**: Opcional por usuario
+- **Deletion Protection**: Habilitado en producción (previene eliminación accidental del User Pool)
+- **Attribute Permissions**: `custom:tenant_id` y `custom:role` son **read-only** para el app client (SPA). Solo modificables via `AdminUpdateUserAttributes` por SUPER_ADMIN y REALM_ADMIN desde el backend
 
 ## Tema Visual
 

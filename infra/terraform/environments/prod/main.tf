@@ -274,7 +274,7 @@ module "cognito" {
 
   post_confirmation_lambda_arn = module.cognito_trigger.function_arn
 
-  deletion_protection = false
+  deletion_protection = true
 
   tags = local.common_tags
 }

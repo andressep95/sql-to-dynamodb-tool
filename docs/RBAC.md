@@ -89,6 +89,8 @@ return false
 
 ```hcl
 # infra/terraform/modules/cognito/main.tf
+
+# Atributos custom (mutable = true para permitir cambios via AdminUpdateUserAttributes)
 schema {
   name                = "tenant_id"
   attribute_data_type = "String"
@@ -101,6 +103,33 @@ schema {
   mutable             = true
 }
 ```
+
+#### Permisos de atributos en App Client
+
+Los atributos `custom:tenant_id` y `custom:role` son **read-only** a nivel de app client.
+Esto impide que usuarios modifiquen estos valores desde el SPA.
+
+Solo SUPER_ADMIN y REALM_ADMIN pueden cambiarlos via `AdminUpdateUserAttributes` en el Lambda admin-handler (bypasea restricciones del client).
+
+Ref: [Multi-tenancy Security Recommendations](https://docs.aws.amazon.com/cognito/latest/developerguide/multi-tenancy-security-recommendations.html)
+
+```hcl
+# App Client - Restricción de escritura
+read_attributes = [
+  "email",
+  "email_verified",
+  "custom:tenant_id",
+  "custom:role",
+]
+
+write_attributes = [
+  "email",  # Solo email es escribible por el usuario
+]
+```
+
+#### Deletion Protection
+
+Habilitado en producción (`deletion_protection = true`) para prevenir eliminación accidental del User Pool via Terraform.
 
 ### 2. Trigger Lambda
 
